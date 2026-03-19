@@ -187,6 +187,60 @@ status: active
         shutil.rmtree(proj_path)
         return {"id": project_id, "deleted": True}
     
+    def update_project_content(self, world_id: str, env_id: str, project_id: str, content: str) -> Dict:
+        """Update project markdown content"""
+        proj_path = self.worlds_dir / world_id / "environments" / env_id / "projects" / project_id
+        proj_file = proj_path / "PROJECT.md"
+        
+        if not proj_file.exists():
+            return {"success": False, "error": "Project not found"}
+        
+        # Read existing metadata
+        existing = self._read_entity(proj_path, "PROJECT.md")
+        existing_meta = existing.get("metadata", {})
+        existing_meta["updated"] = datetime.now().isoformat()
+        
+        # Write with new content
+        yaml_header = yaml.dump(existing_meta, default_flow_style=False, allow_unicode=True)
+        proj_md = f"""---
+{yaml_header}---
+
+{content}
+"""
+        proj_file.write_text(proj_md)
+        return {"id": project_id, "updated": True}
+    
+    def list_memory_files(self, world_id: str, env_id: str, project_id: str) -> List[Dict]:
+        """List memory files for a project"""
+        memory_path = self.worlds_dir / world_id / "environments" / env_id / "projects" / project_id / "memory"
+        if not memory_path.exists():
+            return []
+        
+        files = []
+        for f in sorted(memory_path.iterdir(), reverse=True):
+            if f.is_file() and f.suffix == '.md':
+                files.append({
+                    "name": f.name,
+                    "date": f.stem,
+                    "size": f.stat().st_size
+                })
+        return files
+    
+    def get_memory_file(self, world_id: str, env_id: str, project_id: str, filename: str) -> str:
+        """Get memory file content"""
+        memory_file = self.worlds_dir / world_id / "environments" / env_id / "projects" / project_id / "memory" / filename
+        if not memory_file.exists():
+            return ""
+        return memory_file.read_text()
+    
+    def set_memory_file(self, world_id: str, env_id: str, project_id: str, filename: str, content: str) -> Dict:
+        """Set memory file content"""
+        memory_path = self.worlds_dir / world_id / "environments" / env_id / "projects" / project_id / "memory"
+        memory_path.mkdir(exist_ok=True)
+        memory_file = memory_path / filename
+        memory_file.write_text(content)
+        return {"filename": filename, "updated": True}
+    
     # =========== AGENT ===========
     
     def list_agents(self, world_id: str, env_id: str, project_id: str) -> List[str]:

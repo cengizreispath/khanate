@@ -1,13 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { FolderKanban, Bot, Plus, ArrowLeft, Play, Square, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { EntityEditor } from '@/components/EntityEditor';
+import { MarkdownEditor } from '@/components/MarkdownEditor';
+import { MemoryBrowser } from '@/components/MemoryBrowser';
 
 interface Agent {
   id: string;
@@ -21,6 +23,8 @@ interface ProjectData {
   id: string;
   name: string;
   description?: string;
+  content?: string;
+  metadata?: Record<string, string>;
   agents: Agent[];
   availableTemplates: string[];
 }
@@ -39,9 +43,11 @@ export default function ProjectDetailPage() {
   const [task, setTask] = useState('');
   const [spawning, setSpawning] = useState(false);
   const [spawnError, setSpawnError] = useState('');
+  const [contentData, setContentData] = useState({ content: '', metadata: {} });
 
   useEffect(() => {
     fetchProject();
+    fetchContent();
   }, [worldId, envId, projectId]);
 
   const fetchProject = async () => {
@@ -58,19 +64,38 @@ export default function ProjectDetailPage() {
     }
   };
 
+  const fetchContent = async () => {
+    try {
+      const res = await fetch(`/api/worlds/${worldId}/environments/${envId}/projects/${projectId}/content`);
+      const data = await res.json();
+      if (data.success) {
+        setContentData(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch content:', error);
+    }
+  };
+
+  const saveContent = async (content: string) => {
+    await fetch(`/api/worlds/${worldId}/environments/${envId}/projects/${projectId}/content`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content }),
+    });
+    fetchContent();
+  };
+
   const handleSpawn = async (e: React.FormEvent) => {
     e.preventDefault();
     setSpawning(true);
     setSpawnError('');
     try {
-      console.log('Spawning agent:', { template: selectedTemplate, task });
       const res = await fetch(`/api/worlds/${worldId}/environments/${envId}/projects/${projectId}/agents`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ template: selectedTemplate, task }),
       });
       const data = await res.json();
-      console.log('Spawn response:', data);
       if (data.success) {
         setShowSpawn(false);
         setSelectedTemplate('');
@@ -80,7 +105,6 @@ export default function ProjectDetailPage() {
         setSpawnError(data.error || 'Failed to spawn agent');
       }
     } catch (error) {
-      console.error('Failed to spawn agent:', error);
       setSpawnError('Network error');
     } finally {
       setSpawning(false);
@@ -121,14 +145,14 @@ export default function ProjectDetailPage() {
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb & Header */}
+      {/* Header */}
       <div className="flex items-center gap-4">
         <Link href={`/worlds/${worldId}/environments/${envId}`}>
           <Button variant="ghost" size="icon">
             <ArrowLeft className="w-5 h-5" />
           </Button>
         </Link>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-1">
           <div className="w-14 h-14 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-center">
             <FolderKanban className="w-7 h-7 text-amber-500" />
           </div>
@@ -146,6 +170,7 @@ export default function ProjectDetailPage() {
             id={projectId}
             name={project.name || projectId}
             description={project.description}
+            metadata={project.metadata}
             onSave={async (data) => {
               await fetch(`/api/worlds/${worldId}/environments/${envId}/projects/${projectId}/update`, {
                 method: 'PUT',
@@ -164,86 +189,144 @@ export default function ProjectDetailPage() {
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <Bot className="w-8 h-8 text-green-500" />
-              <div>
-                <p className="text-zinc-500 text-sm">Running Agents</p>
-                <p className="text-2xl font-bold text-green-400">{runningAgents.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Tabs */}
+      <Tabs defaultValue="overview">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="content">Content</TabsTrigger>
+          <TabsTrigger value="memory">Memory</TabsTrigger>
+          <TabsTrigger value="agents">Agents</TabsTrigger>
+        </TabsList>
 
-      {/* Agents */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Agents</CardTitle>
-            <CardDescription>AI agents working on this project</CardDescription>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="ghost" size="icon" onClick={fetchProject}>
-              <RefreshCw className="w-4 h-4" />
-            </Button>
-            <Button onClick={() => setShowSpawn(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Spawn Agent
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {project.agents && project.agents.length > 0 ? (
-            <div className="space-y-3">
-              {project.agents.map((agent) => (
-                <div
-                  key={agent.id}
-                  className="flex items-center justify-between p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                      agent.status === 'running' 
-                        ? 'bg-green-500/10 border border-green-500/20' 
-                        : 'bg-zinc-800 border border-zinc-700'
-                    }`}>
-                      <Bot className={`w-5 h-5 ${agent.status === 'running' ? 'text-green-400' : 'text-zinc-500'}`} />
-                    </div>
-                    <div>
-                      <p className="font-medium text-white">{agent.name || agent.id}</p>
-                      <p className="text-sm text-zinc-500">{agent.role}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <span className={`px-2.5 py-1 rounded-md text-xs font-medium ${
-                      agent.status === 'running'
-                        ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                        : 'bg-zinc-800 text-zinc-400'
-                    }`}>
-                      {agent.status}
-                    </span>
-                    {agent.status === 'running' && (
-                      <Button variant="destructive" size="sm" onClick={() => handleStopAgent(agent.id)}>
-                        <Square className="w-3 h-3 mr-1" />
-                        Stop
-                      </Button>
-                    )}
+        {/* Overview Tab */}
+        <TabsContent value="overview">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-4">
+                  <Bot className="w-8 h-8 text-green-500" />
+                  <div>
+                    <p className="text-zinc-500 text-sm">Running Agents</p>
+                    <p className="text-2xl font-bold text-green-400">{runningAgents.length}</p>
                   </div>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="py-12 text-center">
-              <Bot className="w-12 h-12 text-zinc-700 mx-auto mb-4" />
-              <p className="text-zinc-500">No agents running</p>
-              <p className="text-zinc-600 text-sm mt-1">Spawn an agent to start working on this project</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-4">
+                  <FolderKanban className="w-8 h-8 text-amber-500" />
+                  <div>
+                    <p className="text-zinc-500 text-sm">Total Agents</p>
+                    <p className="text-2xl font-bold">{project.agents?.length || 0}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Quick Actions */}
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-3">
+                <Button onClick={() => setShowSpawn(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Spawn Agent
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Content Tab */}
+        <TabsContent value="content">
+          <MarkdownEditor
+            title="PROJECT.md"
+            description="Project documentation and context for agents"
+            content={contentData.content}
+            onSave={saveContent}
+          />
+        </TabsContent>
+
+        {/* Memory Tab */}
+        <TabsContent value="memory">
+          <MemoryBrowser
+            entityPath={`/api/worlds/${worldId}/environments/${envId}/projects/${projectId}`}
+            entityType="project"
+          />
+        </TabsContent>
+
+        {/* Agents Tab */}
+        <TabsContent value="agents">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Agents</CardTitle>
+                <CardDescription>AI agents working on this project</CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="ghost" size="icon" onClick={fetchProject}>
+                  <RefreshCw className="w-4 h-4" />
+                </Button>
+                <Button onClick={() => setShowSpawn(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Spawn Agent
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {project.agents && project.agents.length > 0 ? (
+                <div className="space-y-3">
+                  {project.agents.map((agent) => (
+                    <div
+                      key={agent.id}
+                      className="flex items-center justify-between p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                          agent.status === 'running' 
+                            ? 'bg-green-500/10 border border-green-500/20' 
+                            : 'bg-zinc-800 border border-zinc-700'
+                        }`}>
+                          <Bot className={`w-5 h-5 ${agent.status === 'running' ? 'text-green-400' : 'text-zinc-500'}`} />
+                        </div>
+                        <div>
+                          <p className="font-medium text-white">{agent.name || agent.id}</p>
+                          <p className="text-sm text-zinc-500">{agent.role}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className={`px-2.5 py-1 rounded-md text-xs font-medium ${
+                          agent.status === 'running'
+                            ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                            : 'bg-zinc-800 text-zinc-400'
+                        }`}>
+                          {agent.status}
+                        </span>
+                        {agent.status === 'running' && (
+                          <Button variant="destructive" size="sm" onClick={() => handleStopAgent(agent.id)}>
+                            <Square className="w-3 h-3 mr-1" />
+                            Stop
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-12 text-center">
+                  <Bot className="w-12 h-12 text-zinc-700 mx-auto mb-4" />
+                  <p className="text-zinc-500">No agents yet</p>
+                  <p className="text-zinc-600 text-sm mt-1">Spawn an agent to start working on this project</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Spawn Modal */}
       {showSpawn && (

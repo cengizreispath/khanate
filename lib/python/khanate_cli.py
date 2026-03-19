@@ -276,13 +276,99 @@ def handle_command(cmd, args, memory, spawner):
         
         return error(f"Unknown agent subcommand: {subcmd}")
     
+    # ============ CONTENT ============
+    
+    if cmd == "content":
+        if not args:
+            return error("content subcommand required: get, set")
+        
+        subcmd = args[0]
+        
+        if subcmd == "get" and len(args) >= 3:
+            entity_type = args[1]  # world, environment, project
+            if entity_type == "project" and len(args) >= 5:
+                world_id, env_id, project_id = args[2], args[3], args[4]
+                result = memory.get_project(world_id, env_id, project_id)
+                if result:
+                    return success(data={"content": result.get("content", ""), "metadata": result.get("metadata", {})})
+                return error("Project not found")
+            elif entity_type == "world" and len(args) >= 3:
+                world_id = args[2]
+                result = memory.get_world(world_id)
+                if result:
+                    return success(data={"content": result.get("content", ""), "metadata": result.get("metadata", {})})
+                return error("World not found")
+            elif entity_type == "environment" and len(args) >= 4:
+                world_id, env_id = args[2], args[3]
+                result = memory.get_environment(world_id, env_id)
+                if result:
+                    return success(data={"content": result.get("content", ""), "metadata": result.get("metadata", {})})
+                return error("Environment not found")
+        
+        if subcmd == "set" and len(args) >= 3:
+            entity_type = args[1]
+            # Parse --base64 flag
+            base64_content = None
+            for arg in args:
+                if arg.startswith("--base64="):
+                    import base64
+                    base64_content = base64.b64decode(arg.split("=", 1)[1]).decode('utf-8')
+            
+            if entity_type == "project" and len(args) >= 5 and base64_content:
+                world_id, env_id, project_id = args[2], args[3], args[4]
+                result = memory.update_project_content(world_id, env_id, project_id, base64_content)
+                return success(data=result, message="Content updated")
+        
+        return error(f"Unknown content subcommand: {subcmd}")
+    
     # ============ MEMORY ============
     
     if cmd == "memory":
         if not args:
-            return error("memory subcommand required: add, context")
+            return error("memory subcommand required: list, get, add, set, context")
         
         subcmd = args[0]
+        
+        if subcmd == "list" and len(args) >= 3:
+            entity_type = args[1]
+            if entity_type == "project" and len(args) >= 5:
+                world_id, env_id, project_id = args[2], args[3], args[4]
+                files = memory.list_memory_files(world_id, env_id, project_id)
+                return success(data={"files": files})
+            return error("Invalid arguments for memory list")
+        
+        if subcmd == "get" and len(args) >= 4:
+            entity_type = args[1]
+            if entity_type == "project" and len(args) >= 6:
+                world_id, env_id, project_id, filename = args[2], args[3], args[4], args[5]
+                content = memory.get_memory_file(world_id, env_id, project_id, filename)
+                return success(data={"content": content, "filename": filename})
+            return error("Invalid arguments for memory get")
+        
+        if subcmd == "add" and len(args) >= 4:
+            entity_type = args[1]
+            if entity_type == "project" and len(args) >= 6:
+                world_id, env_id, project_id = args[2], args[3], args[4]
+                content = args[5]
+                proj_path = memory.worlds_dir / world_id / "environments" / env_id / "projects" / project_id
+                result = memory.add_memory(proj_path, content)
+                return success(data={"file": result}, message="Memory added")
+            return error("Invalid arguments for memory add")
+        
+        if subcmd == "set" and len(args) >= 4:
+            entity_type = args[1]
+            # Parse --base64 flag
+            base64_content = None
+            for arg in args:
+                if arg.startswith("--base64="):
+                    import base64
+                    base64_content = base64.b64decode(arg.split("=", 1)[1]).decode('utf-8')
+            
+            if entity_type == "project" and len(args) >= 6 and base64_content:
+                world_id, env_id, project_id, filename = args[2], args[3], args[4], args[5]
+                result = memory.set_memory_file(world_id, env_id, project_id, filename, base64_content)
+                return success(data=result, message="Memory file updated")
+            return error("Invalid arguments for memory set")
         
         if subcmd == "context" and len(args) >= 5:
             world_id, env_id, project_id, agent_id = args[1:5]
