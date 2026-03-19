@@ -1,12 +1,12 @@
 {
-  "updated_at": "2026-03-19T21:57:23.988796",
+  "updated_at": "2026-03-19T22:03:04.539388",
   "agents": {
     "orchestrator": {
       "session_key": "khanate:path:project-division:dragoman:orchestrator:5a08dbf5",
       "status": "idle",
       "role": "orchestrator",
       "name": "Orchestrator",
-      "last_activity": "2026-03-19T16:17:06.634754"
+      "last_activity": "2026-03-19T22:03:04.539077"
     },
     "developer": {
       "session_key": "khanate:path:project-division:dragoman:developer:6128d07d",
@@ -28,6 +28,13 @@
       "role": "pm",
       "name": "Project Manager",
       "last_activity": "2026-03-19T21:57:23.988448"
+    },
+    "pm": {
+      "session_key": "khanate:path:project-division:dragoman:pm:697d8e00",
+      "status": "idle",
+      "role": "pm",
+      "name": "Project Manager",
+      "last_activity": "2026-03-19T22:01:33.077042"
     }
   }
 }

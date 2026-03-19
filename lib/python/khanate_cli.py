@@ -245,7 +245,16 @@ def handle_command(cmd, args, memory, spawner):
             world_id, env_id, project_id, name = args[1], args[2], args[3], args[4]
             content = args[5] if len(args) > 5 else ""
             result = memory.create_project(world_id, env_id, project_id, name, content)
-            return success(data=result, message=f"Project '{name}' created")
+            
+            # Auto-create orchestrator agent for the project
+            orchestrator_result = spawner.create_agent_from_template(
+                world_id, env_id, project_id, "orchestrator", "orchestrator"
+            )
+            
+            return success(
+                data={**result, "orchestrator_created": orchestrator_result.get("success", False)}, 
+                message=f"Project '{name}' created with orchestrator"
+            )
         
         if subcmd == "get" and len(args) >= 4:
             world_id, env_id, project_id = args[1], args[2], args[3]

@@ -413,6 +413,10 @@ created: {datetime.now().isoformat()}
         if response_text:
             self._write_log(world_id, env_id, project_id, agent_id, "assistant", response_text)
         
+        # Notify orchestrator about new agent (if this is not the orchestrator)
+        if agent_id != "orchestrator":
+            self._notify_orchestrator(world_id, env_id, project_id, agent_id, instance)
+        
         return {
             "success": True,
             "key": key,
@@ -420,6 +424,29 @@ created: {datetime.now().isoformat()}
             "session_key": session_key,
             "clawdbot_result": spawn_result
         }
+    
+    def _notify_orchestrator(self, world_id: str, env_id: str, project_id: str, 
+                              agent_id: str, instance: 'AgentInstance') -> None:
+        """Notify the orchestrator about a new agent being spawned"""
+        try:
+            # Check if orchestrator exists and is running
+            orch_key = f"{world_id}/{env_id}/{project_id}/orchestrator"
+            orchestrator = self.registry.get(orch_key)
+            
+            if orchestrator and orchestrator.session_key and orchestrator.status in ["idle", "running"]:
+                # Send notification to orchestrator
+                notification = f"""[SYSTEM] Yeni agent spawn edildi:
+- Agent: {agent_id}
+- Role: {instance.role}
+- Session: {instance.session_key}
+- Status: {instance.status}
+
+Agent registry güncellendi. Bu agent'a iş atabilirsin."""
+                
+                self._send_to_session(orchestrator.session_key, notification)
+        except Exception as e:
+            # Don't fail spawn if notification fails
+            print(f"Warning: Failed to notify orchestrator: {e}")
     
     def _write_log(self, world_id: str, env_id: str, project_id: str, agent_id: str, 
                    role: str, content: str) -> None:
