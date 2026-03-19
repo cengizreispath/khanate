@@ -70,7 +70,7 @@ fi
 
 # Initialize empty registry if not exists
 if [ ! -f "$DATA_DIR/registry/agents.json" ]; then
-    echo '{"agents": [], "history": []}' > "$DATA_DIR/registry/agents.json"
+    echo '{"agents": {}, "updated_at": ""}' > "$DATA_DIR/registry/agents.json"
 fi
 
 # Start the application
