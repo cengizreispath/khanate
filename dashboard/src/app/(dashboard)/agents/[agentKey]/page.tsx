@@ -13,6 +13,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { MarkdownEditor } from '@/components/MarkdownEditor';
 import { MemoryBrowser } from '@/components/MemoryBrowser';
 import { AgentChat } from '@/components/AgentChat';
+import { DirectChat } from '@/components/DirectChat';
 
 interface AgentInstance {
   id: string;
@@ -268,19 +269,32 @@ export default function AgentDetailPage() {
       {/* Tabs */}
       <Tabs defaultValue="chat">
         <TabsList className="flex-wrap">
-          <TabsTrigger value="chat">Chat</TabsTrigger>
+          <TabsTrigger value="chat">Agent Chat</TabsTrigger>
+          <TabsTrigger value="direct">Direct Chat</TabsTrigger>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="logs">Logs ({logs.length})</TabsTrigger>
           <TabsTrigger value="content">AGENT.md</TabsTrigger>
           <TabsTrigger value="memory">Memory</TabsTrigger>
         </TabsList>
 
-        {/* Chat Tab */}
+        {/* Agent Chat Tab */}
         <TabsContent value="chat">
           <AgentChat 
             agentKey={agentKey} 
             agentName={String(agent?.config?.metadata?.name || agentId)}
             isRunning={isRunning}
+          />
+        </TabsContent>
+
+        {/* Direct Chat Tab */}
+        <TabsContent value="direct">
+          <DirectChat 
+            context={{
+              worldId,
+              envId,
+              projectId,
+              agentId,
+            }}
           />
         </TabsContent>
 
