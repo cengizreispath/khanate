@@ -276,22 +276,96 @@ created: {datetime.now().isoformat()}
         else:
             full_task = f"{system_prompt}\n\n---\n\n# READY\n\nAgent hazır. Görev bekleniyor."
         
-        # For now, return the spawn config - actual spawning will be done via Khanate
-        spawn_config = {
+        # Generate unique session key for this agent
+        import uuid
+        session_key = f"khanate:{world_id}:{env_id}:{project_id}:{agent_id}:{uuid.uuid4().hex[:8]}"
+        model = metadata.get("model", "claude-sonnet-4-5")
+        label = f"khanate-{project_id}-{agent_id}"
+        
+        # Actually spawn via Clawdbot
+        spawn_result = self._spawn_via_clawdbot(
+            session_key=session_key,
+            task=full_task,
+            model=model,
+            label=label
+        )
+        
+        if not spawn_result.get("success"):
+            self.registry.update_status(key, AgentStatus.ERROR, spawn_result.get("error"))
+            return spawn_result
+        
+        # Update instance with session key
+        instance.session_key = session_key
+        instance.started_at = datetime.now().isoformat()
+        self.registry.register(instance)
+        self.registry.update_status(key, AgentStatus.RUNNING)
+        
+        return {
             "success": True,
             "key": key,
             "instance": instance.to_dict(),
-            "spawn_params": {
-                "task": full_task,
-                "model": metadata.get("model", "sonnet"),
-                "label": f"agent-{project_id}-{agent_id}"
-            }
+            "session_key": session_key,
+            "clawdbot_result": spawn_result
         }
+    
+    def _spawn_via_clawdbot(self, session_key: str, task: str, model: str, label: str) -> Dict:
+        """Spawn agent via Clawdbot CLI"""
+        import tempfile
         
-        # Update status
-        self.registry.update_status(key, AgentStatus.RUNNING)
-        
-        return spawn_config
+        try:
+            # Write task to temp file to avoid shell escaping issues
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
+                f.write(task)
+                task_file = f.name
+            
+            # Build clawdbot command
+            cmd = [
+                "clawdbot", "agent",
+                "--session-id", session_key,
+                "--message", f"@{task_file}",  # Read from file
+                "--json"
+            ]
+            
+            # Run clawdbot agent command (non-blocking, starts the session)
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            
+            # Cleanup temp file
+            os.unlink(task_file)
+            
+            if result.returncode != 0:
+                return {
+                    "success": False,
+                    "error": f"Clawdbot failed: {result.stderr or result.stdout}"
+                }
+            
+            # Parse JSON response
+            try:
+                response = json.loads(result.stdout)
+                return {
+                    "success": True,
+                    "response": response
+                }
+            except json.JSONDecodeError:
+                return {
+                    "success": True,
+                    "response": result.stdout
+                }
+                
+        except subprocess.TimeoutExpired:
+            return {
+                "success": False,
+                "error": "Clawdbot command timed out"
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
     
     def stop(self, world_id: str, env_id: str, project_id: str, agent_id: str) -> Dict:
         """Stop an agent instance"""
