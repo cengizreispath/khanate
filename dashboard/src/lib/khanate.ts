@@ -59,6 +59,9 @@ async function khanateHttp(path: string, method: 'GET' | 'POST' = 'GET', body?: 
   }
 }
 
+// Template operations
+export const khanateTemplateList = () => khanate('template list');
+
 // Convenience functions - CLI based (local operations)
 export const khanateStatus = () => khanate('status');
 export const khanateWorldList = () => khanate('world list');

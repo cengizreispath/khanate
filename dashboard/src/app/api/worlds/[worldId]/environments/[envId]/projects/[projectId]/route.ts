@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { khanateProjectGet, khanate } from '@/lib/khanate';
+import { khanateProjectGet, khanate, khanateTemplateList } from '@/lib/khanate';
 
 export async function GET(
   request: Request,
@@ -14,8 +14,15 @@ export async function GET(
     // Get running agents for this project
     const agentsResult = await khanate(`agent list ${worldId} ${envId} ${projectId}`);
     
+    // Get available templates
+    const templatesResult = await khanateTemplateList();
+    
     const agents = agentsResult.success && agentsResult.data?.agents
       ? agentsResult.data.agents
+      : [];
+    
+    const templates = templatesResult.success && templatesResult.data?.templates
+      ? templatesResult.data.templates
       : [];
     
     return NextResponse.json({
@@ -25,7 +32,7 @@ export async function GET(
         name: projectResult.data?.name || projectId,
         description: projectResult.data?.description,
         agents,
-        availableTemplates: ['developer', 'qa', 'orchestrator']
+        availableTemplates: templates
       }
     });
   } catch (error) {

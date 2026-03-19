@@ -529,6 +529,48 @@ def handle_command(cmd, args, memory, spawner):
         
         return error(f"Unknown memory subcommand: {subcmd}")
     
+    # ============ TEMPLATE ============
+    
+    if cmd == "template":
+        if not args:
+            return error("template subcommand required: list")
+        
+        subcmd = args[0]
+        
+        if subcmd == "list":
+            import yaml
+            templates_dir = Path(__file__).parent.parent.parent / "templates" / "agents"
+            templates = []
+            
+            if templates_dir.exists():
+                for f in templates_dir.glob("*.yaml"):
+                    try:
+                        content = f.read_text()
+                        # Parse YAML front matter
+                        if content.startswith("---"):
+                            parts = content.split("---", 2)
+                            if len(parts) >= 3:
+                                metadata = yaml.safe_load(parts[1])
+                                templates.append({
+                                    "id": f.stem,
+                                    "name": metadata.get("name", f.stem.capitalize()),
+                                    "role": metadata.get("role", f.stem),
+                                    "model": metadata.get("model", "claude-sonnet-4-5"),
+                                    "description": metadata.get("description", "")
+                                })
+                    except Exception:
+                        templates.append({
+                            "id": f.stem,
+                            "name": f.stem.capitalize(),
+                            "role": f.stem,
+                            "model": "claude-sonnet-4-5",
+                            "description": ""
+                        })
+            
+            return success(data={"templates": templates})
+        
+        return error(f"Unknown template subcommand: {subcmd}")
+    
     # ============ UNKNOWN ============
     
     return error(f"Unknown command: {cmd}")

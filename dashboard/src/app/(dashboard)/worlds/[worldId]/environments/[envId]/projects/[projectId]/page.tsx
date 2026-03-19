@@ -19,6 +19,14 @@ interface Agent {
   started_at?: string;
 }
 
+interface Template {
+  id: string;
+  name: string;
+  role: string;
+  model: string;
+  description: string;
+}
+
 interface ProjectData {
   id: string;
   name: string;
@@ -26,7 +34,7 @@ interface ProjectData {
   content?: string;
   metadata?: Record<string, string>;
   agents: Agent[];
-  availableTemplates: string[];
+  availableTemplates: (string | Template)[];
 }
 
 export default function ProjectDetailPage() {
@@ -350,10 +358,19 @@ export default function ProjectDetailPage() {
                     required
                   >
                     <option value="">Select a template...</option>
-                    {(project.availableTemplates || ['developer', 'qa', 'orchestrator']).map((t) => (
-                      <option key={t} value={t}>{t}</option>
+                    {(project.availableTemplates || []).map((t) => (
+                      <option key={typeof t === 'string' ? t : t.id} value={typeof t === 'string' ? t : t.id}>
+                        {typeof t === 'string' ? t : t.name}
+                      </option>
                     ))}
                   </select>
+                  {selectedTemplate && project.availableTemplates && (() => {
+                    const found = project.availableTemplates.find(t => 
+                      (typeof t === 'string' ? t : t.id) === selectedTemplate
+                    );
+                    const desc = found && typeof found !== 'string' ? found.description : '';
+                    return desc ? <p className="text-xs text-zinc-500 mt-1">{desc}</p> : null;
+                  })()}
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm text-zinc-400">Task (optional)</label>
