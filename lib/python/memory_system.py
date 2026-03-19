@@ -138,6 +138,55 @@ status: active
         (proj_path / "PROJECT.md").write_text(proj_md)
         return {"id": project_id, "name": name, "environment": env_id, "world": world_id, "path": str(proj_path)}
     
+    def update_project(self, world_id: str, env_id: str, project_id: str, 
+                       name: str = None, description: str = None, metadata: Dict = None) -> Dict:
+        """Update project details"""
+        proj_path = self.worlds_dir / world_id / "environments" / env_id / "projects" / project_id
+        proj_file = proj_path / "PROJECT.md"
+        
+        if not proj_file.exists():
+            return {"success": False, "error": "Project not found"}
+        
+        # Read existing
+        existing = self._read_entity(proj_path, "PROJECT.md")
+        existing_meta = existing.get("metadata", {})
+        
+        # Update metadata
+        if name:
+            existing_meta["name"] = name
+        if description:
+            existing_meta["description"] = description
+        if metadata:
+            existing_meta.update(metadata)
+        existing_meta["updated"] = datetime.now().isoformat()
+        
+        # Write updated file
+        yaml_header = yaml.dump(existing_meta, default_flow_style=False, allow_unicode=True)
+        content = existing.get("content", "")
+        
+        proj_md = f"""---
+{yaml_header}---
+
+# Project: {existing_meta.get('name', project_id)}
+
+{existing_meta.get('description', '')}
+
+{content}
+"""
+        proj_file.write_text(proj_md)
+        return {"id": project_id, "updated": True}
+    
+    def delete_project(self, world_id: str, env_id: str, project_id: str) -> Dict:
+        """Delete a project"""
+        import shutil
+        proj_path = self.worlds_dir / world_id / "environments" / env_id / "projects" / project_id
+        
+        if not proj_path.exists():
+            return {"success": False, "error": "Project not found"}
+        
+        shutil.rmtree(proj_path)
+        return {"id": project_id, "deleted": True}
+    
     # =========== AGENT ===========
     
     def list_agents(self, world_id: str, env_id: str, project_id: str) -> List[str]:

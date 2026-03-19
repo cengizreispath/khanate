@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { FolderKanban, Bot, Plus, ArrowLeft, Play, Square, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { EntityEditor } from '@/components/EntityEditor';
 
 interface Agent {
   id: string;
@@ -25,6 +27,7 @@ interface ProjectData {
 
 export default function ProjectDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const worldId = params.worldId as string;
   const envId = params.envId as string;
   const projectId = params.projectId as string;
@@ -129,7 +132,7 @@ export default function ProjectDetailPage() {
           <div className="w-14 h-14 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-center">
             <FolderKanban className="w-7 h-7 text-amber-500" />
           </div>
-          <div>
+          <div className="flex-1">
             <h1 className="text-2xl font-bold text-white capitalize">{project.name || projectId}</h1>
             <p className="text-zinc-500">
               <Link href={`/worlds/${worldId}`} className="hover:text-zinc-300">{worldId}</Link>
@@ -138,6 +141,26 @@ export default function ProjectDetailPage() {
               {' / '}{projectId}
             </p>
           </div>
+          <EntityEditor
+            type="project"
+            id={projectId}
+            name={project.name || projectId}
+            description={project.description}
+            onSave={async (data) => {
+              await fetch(`/api/worlds/${worldId}/environments/${envId}/projects/${projectId}/update`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+              });
+              fetchProject();
+            }}
+            onDelete={async () => {
+              await fetch(`/api/worlds/${worldId}/environments/${envId}/projects/${projectId}/update`, {
+                method: 'DELETE',
+              });
+              router.push(`/worlds/${worldId}/environments/${envId}`);
+            }}
+          />
         </div>
       </div>
 

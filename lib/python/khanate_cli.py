@@ -178,6 +178,26 @@ def handle_command(cmd, args, memory, spawner):
                 return success(data=result)
             return error(f"Project '{project_id}' not found")
         
+        if subcmd == "update" and len(args) >= 4:
+            world_id, env_id, project_id = args[1], args[2], args[3]
+            # Parse --name, --description, --metadata flags
+            name = description = metadata = None
+            for arg in args[4:]:
+                if arg.startswith("--name="):
+                    name = arg.split("=", 1)[1].strip('"')
+                elif arg.startswith("--description="):
+                    description = arg.split("=", 1)[1].strip('"')
+                elif arg.startswith("--metadata="):
+                    import json
+                    metadata = json.loads(arg.split("=", 1)[1].strip('"').replace('\\"', '"'))
+            result = memory.update_project(world_id, env_id, project_id, name, description, metadata)
+            return success(data=result, message="Project updated")
+        
+        if subcmd == "delete" and len(args) >= 4:
+            world_id, env_id, project_id = args[1], args[2], args[3]
+            result = memory.delete_project(world_id, env_id, project_id)
+            return success(data=result, message="Project deleted")
+        
         return error(f"Unknown project subcommand: {subcmd}")
     
     # ============ AGENT ============
