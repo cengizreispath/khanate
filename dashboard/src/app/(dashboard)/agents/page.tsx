@@ -47,8 +47,21 @@ export default function AgentsPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const runningAgents = agents.filter(a => a.status === 'running');
-  const stoppedAgents = agents.filter(a => a.status !== 'running');
+  // Active states: running, busy, idle (agent is alive)
+  const isActiveStatus = (status: string) => ['running', 'busy', 'idle'].includes(status);
+  const runningAgents = agents.filter(a => isActiveStatus(a.status));
+  const stoppedAgents = agents.filter(a => !isActiveStatus(a.status));
+  
+  // Status badge colors
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'running': return 'bg-green-500/20 text-green-400 border-green-500/30';
+      case 'busy': return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
+      case 'idle': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+      case 'error': return 'bg-red-500/20 text-red-400 border-red-500/30';
+      default: return 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30';
+    }
+  };
 
   const formatTime = (isoString?: string) => {
     if (!isoString) return '-';
@@ -128,7 +141,7 @@ export default function AgentsPage() {
         </Card>
       </div>
 
-      {/* Running Agents */}
+      {/* Active Agents */}
       {runningAgents.length > 0 && (
         <Card>
           <CardHeader>
@@ -150,8 +163,18 @@ export default function AgentsPage() {
                   className="flex items-center justify-between p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg hover:border-green-500/30 transition-colors"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-green-500/10 border border-green-500/20 rounded-lg flex items-center justify-center">
-                      <Bot className="w-5 h-5 text-green-400" />
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                      agent.status === 'busy' 
+                        ? 'bg-orange-500/10 border border-orange-500/20'
+                        : agent.status === 'idle'
+                        ? 'bg-blue-500/10 border border-blue-500/20'
+                        : 'bg-green-500/10 border border-green-500/20'
+                    }`}>
+                      <Bot className={`w-5 h-5 ${
+                        agent.status === 'busy' ? 'text-orange-400' 
+                        : agent.status === 'idle' ? 'text-blue-400' 
+                        : 'text-green-400'
+                      }`} />
                     </div>
                     <div>
                       <p className="font-medium text-white">{agent.name || agent.agent_id}</p>
@@ -165,7 +188,7 @@ export default function AgentsPage() {
                       <p className="text-xs text-zinc-500">Started</p>
                       <p className="text-sm text-zinc-400">{formatTime(agent.started_at)}</p>
                     </div>
-                    <span className="px-2.5 py-1 rounded-md text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20">
+                    <span className={`px-2.5 py-1 rounded-md text-xs font-medium border ${getStatusColor(agent.status)}`}>
                       {agent.status}
                     </span>
                   </div>
@@ -193,11 +216,21 @@ export default function AgentsPage() {
                 >
                   <div className="flex items-center gap-4">
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                      agent.status === 'running' 
-                        ? 'bg-green-500/10 border border-green-500/20' 
+                      isActiveStatus(agent.status)
+                        ? agent.status === 'busy' 
+                          ? 'bg-orange-500/10 border border-orange-500/20'
+                          : agent.status === 'idle'
+                          ? 'bg-blue-500/10 border border-blue-500/20'
+                          : 'bg-green-500/10 border border-green-500/20'
                         : 'bg-zinc-800 border border-zinc-700'
                     }`}>
-                      <Bot className={`w-5 h-5 ${agent.status === 'running' ? 'text-green-400' : 'text-zinc-500'}`} />
+                      <Bot className={`w-5 h-5 ${
+                        isActiveStatus(agent.status)
+                          ? agent.status === 'busy' ? 'text-orange-400' 
+                            : agent.status === 'idle' ? 'text-blue-400' 
+                            : 'text-green-400'
+                          : 'text-zinc-500'
+                      }`} />
                     </div>
                     <div>
                       <p className="font-medium text-white">{agent.name || agent.agent_id}</p>
@@ -213,13 +246,7 @@ export default function AgentsPage() {
                       <p>{agent.world_id}/{agent.env_id}</p>
                       <p>{agent.project_id}</p>
                     </div>
-                    <span className={`px-2.5 py-1 rounded-md text-xs font-medium ${
-                      agent.status === 'running'
-                        ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                        : agent.status === 'error'
-                        ? 'bg-red-500/10 text-red-400 border border-red-500/20'
-                        : 'bg-zinc-800 text-zinc-400'
-                    }`}>
+                    <span className={`px-2.5 py-1 rounded-md text-xs font-medium border ${getStatusColor(agent.status)}`}>
                       {agent.status}
                     </span>
                   </div>
