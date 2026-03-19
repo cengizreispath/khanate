@@ -117,9 +117,9 @@ class KhanateHandler(BaseHTTPRequestHandler):
             
             cmd = ["agent", "spawn", world_id, env_id, project_id, agent_id]
             if task:
-                cmd.extend(["--task", task])
+                cmd.append(f"--task={task}")
             if template:
-                cmd.extend(["--template", template])
+                cmd.append(f"--template={template}")
             
             result = self._run_khanate(cmd)
             self._send_json(result)

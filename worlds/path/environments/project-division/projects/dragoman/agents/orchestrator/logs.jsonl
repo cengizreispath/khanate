@@ -6,3 +6,9 @@
 {"id": "ed2baa77", "timestamp": "2026-03-19T12:13:55.709566", "role": "assistant", "content": "Cengiz, bu aynı mesaj 3. kez geldi. Bir şeyleri test mi ediyorsun yoksa mesaj iletiminde sorun mu var?\n\nDragoman analizini zaten yukarıda paylaştım - sorularım da orada. Devam etmek için şablonu bekliyorum."}
 {"id": "cca8f3f0", "timestamp": "2026-03-19T14:24:33.470295", "role": "user", "content": "cengizreispath hesabı altında dragoman adında bir GitHub repo oluştur"}
 {"id": "344b0cc1", "timestamp": "2026-03-19T14:24:33.470633", "role": "assistant", "content": "Oluşturdum zaten: https://github.com/cengizreispath/dragoman ✓\n\nAnalyst agent çalışıyor, dokümanları hazırlayıp commitleyecek."}
+{"id": "eb307c2d", "timestamp": "2026-03-19T16:11:09.245404", "role": "user", "content": "merhaba"}
+{"id": "b00faa54", "timestamp": "2026-03-19T16:11:09.245700", "role": "assistant", "content": "Merhaba! Dragoman reposu hazır, dokümanlar commitlendi. Başka bir şey var mı?"}
+{"id": "b2ce99fd", "timestamp": "2026-03-19T16:11:28.616751", "role": "user", "content": "test mesaj"}
+{"id": "7d4d0d55", "timestamp": "2026-03-19T16:11:28.617335", "role": "assistant", "content": "Geldi ✓"}
+{"id": "3c3d566a", "timestamp": "2026-03-19T16:12:05.359525", "role": "user", "content": "test mesaj 2"}
+{"id": "03e1d736", "timestamp": "2026-03-19T16:12:05.359768", "role": "assistant", "content": "✓"}
