@@ -194,30 +194,30 @@ export default function AgentDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href="/agents">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-        </Link>
-        <div className="flex items-center gap-4 flex-1">
-          <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex items-center gap-3">
+          <Link href="/agents">
+            <Button variant="ghost" size="icon" className="shrink-0">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+          </Link>
+          <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center shrink-0 ${
             isRunning 
               ? 'bg-green-500/10 border border-green-500/20' 
               : hasError
               ? 'bg-red-500/10 border border-red-500/20'
               : 'bg-zinc-800 border border-zinc-700'
           }`}>
-            <Bot className={`w-7 h-7 ${
+            <Bot className={`w-6 h-6 sm:w-7 sm:h-7 ${
               isRunning ? 'text-green-400' : hasError ? 'text-red-400' : 'text-zinc-500'
             }`} />
           </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-white">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-lg sm:text-2xl font-bold text-white truncate">
                 {String(agent?.config?.metadata?.name || agentId)}
               </h1>
-              <span className={`px-2.5 py-1 rounded-md text-xs font-medium ${
+              <span className={`px-2 py-0.5 rounded-md text-xs font-medium shrink-0 ${
                 isRunning
                   ? 'bg-green-500/10 text-green-400 border border-green-500/20'
                   : hasError
@@ -227,30 +227,25 @@ export default function AgentDetailPage() {
                 {instance?.status || 'unknown'}
               </span>
             </div>
-            <p className="text-zinc-500">
-              <Link href={`/worlds/${worldId}`} className="hover:text-zinc-300">{worldId}</Link>
-              {' / '}
-              <Link href={`/worlds/${worldId}/environments/${envId}`} className="hover:text-zinc-300">{envId}</Link>
-              {' / '}
-              <Link href={`/worlds/${worldId}/environments/${envId}/projects/${projectId}`} className="hover:text-zinc-300">{projectId}</Link>
-              {' / '}{agentId}
+            <p className="text-zinc-500 text-xs sm:text-sm truncate">
+              {worldId} / {projectId} / {agentId}
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="ghost" size="icon" onClick={() => { fetchAgent(); fetchLogs(); }}>
-              <RefreshCw className="w-5 h-5" />
+        </div>
+        <div className="flex gap-2 sm:ml-auto">
+          <Button variant="ghost" size="icon" onClick={() => { fetchAgent(); fetchLogs(); }}>
+            <RefreshCw className="w-5 h-5" />
+          </Button>
+          <Button onClick={() => setShowSendTask(true)} size="sm" className="flex-1 sm:flex-none">
+            <Send className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Task Gönder</span>
+          </Button>
+          {isRunning && (
+            <Button variant="destructive" size="sm" onClick={handleStop} disabled={stopping}>
+              <Square className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">{stopping ? 'Stopping...' : 'Stop'}</span>
             </Button>
-            <Button onClick={() => setShowSendTask(true)}>
-              <Send className="w-4 h-4 mr-2" />
-              Task Gönder
-            </Button>
-            {isRunning && (
-              <Button variant="destructive" onClick={handleStop} disabled={stopping}>
-                <Square className="w-4 h-4 mr-2" />
-                {stopping ? 'Stopping...' : 'Stop'}
-              </Button>
-            )}
-          </div>
+          )}
         </div>
       </div>
 
@@ -290,27 +285,27 @@ export default function AgentDetailPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-zinc-500">Status</span>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+                  <span className="text-zinc-500 text-sm">Status</span>
                   <span className={`font-medium ${
                     isRunning ? 'text-green-400' : hasError ? 'text-red-400' : 'text-zinc-400'
                   }`}>
                     {instance?.status || 'unknown'}
                   </span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-zinc-500">Session Key</span>
-                  <code className="text-xs bg-zinc-800 px-2 py-1 rounded font-mono text-zinc-300 max-w-[200px] truncate">
-                    {instance?.session_key || '-'}
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+                  <span className="text-zinc-500 text-sm">Session Key</span>
+                  <code className="text-xs bg-zinc-800 px-2 py-1 rounded font-mono text-zinc-300 break-all">
+                    {instance?.session_key ? `...${instance.session_key.slice(-20)}` : '-'}
                   </code>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-zinc-500">Started At</span>
-                  <span className="text-zinc-300">{formatTime(instance?.started_at)}</span>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+                  <span className="text-zinc-500 text-sm">Started At</span>
+                  <span className="text-zinc-300 text-sm">{formatTime(instance?.started_at)}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-zinc-500">Last Activity</span>
-                  <span className="text-zinc-300">{formatTime(instance?.last_activity)}</span>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+                  <span className="text-zinc-500 text-sm">Last Activity</span>
+                  <span className="text-zinc-300 text-sm">{formatTime(instance?.last_activity)}</span>
                 </div>
               </CardContent>
             </Card>
@@ -324,17 +319,17 @@ export default function AgentDetailPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-zinc-500">Role</span>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+                  <span className="text-zinc-500 text-sm">Role</span>
                   <span className="text-zinc-300">{String(agent?.config?.metadata?.role || instance?.role || '-')}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-zinc-500">Model</span>
-                  <span className="text-zinc-300">{String(agent?.config?.metadata?.model || instance?.model || '-')}</span>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+                  <span className="text-zinc-500 text-sm">Model</span>
+                  <span className="text-zinc-300 text-sm break-all">{String(agent?.config?.metadata?.model || instance?.model || '-')}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-zinc-500">Skills</span>
-                  <div className="flex gap-1 flex-wrap justify-end">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1">
+                  <span className="text-zinc-500 text-sm">Skills</span>
+                  <div className="flex gap-1 flex-wrap">
                     {(agent?.config?.metadata?.skills as string[] || []).map((skill) => (
                       <span key={skill} className="text-xs bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded">
                         {skill}
