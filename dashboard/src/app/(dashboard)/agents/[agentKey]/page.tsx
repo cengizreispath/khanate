@@ -198,7 +198,7 @@ export default function AgentDetailPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="flex items-center gap-3">
-          <Link href="/agents">
+          <Link href={`/worlds/${worldId}/environments/${envId}/projects/${projectId}`}>
             <Button variant="ghost" size="icon" className="shrink-0">
               <ArrowLeft className="w-5 h-5" />
             </Button>
@@ -268,14 +268,16 @@ export default function AgentDetailPage() {
 
       {/* Tabs */}
       <Tabs defaultValue="chat">
-        <TabsList className="flex-wrap">
-          <TabsTrigger value="chat">Agent Chat</TabsTrigger>
-          <TabsTrigger value="direct">Direct Chat</TabsTrigger>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="logs">Logs ({logs.length})</TabsTrigger>
-          <TabsTrigger value="content">AGENT.md</TabsTrigger>
-          <TabsTrigger value="memory">Memory</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+          <TabsList className="inline-flex w-max sm:w-auto">
+            <TabsTrigger value="chat" className="text-xs sm:text-sm">Chat</TabsTrigger>
+            <TabsTrigger value="direct" className="text-xs sm:text-sm">Direct</TabsTrigger>
+            <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
+            <TabsTrigger value="logs" className="text-xs sm:text-sm">Logs ({logs.length})</TabsTrigger>
+            <TabsTrigger value="content" className="text-xs sm:text-sm">AGENT.md</TabsTrigger>
+            <TabsTrigger value="memory" className="text-xs sm:text-sm">Memory</TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Agent Chat Tab */}
         <TabsContent value="chat">

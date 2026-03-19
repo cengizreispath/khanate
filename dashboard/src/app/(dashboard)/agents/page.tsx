@@ -214,10 +214,10 @@ export default function AgentsPage() {
                 <Link
                   key={agent.id}
                   href={`/agents/${encodeURIComponent(getAgentKey(agent))}`}
-                  className="flex items-center justify-between p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg hover:border-zinc-700 transition-colors"
+                  className="block p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg hover:border-zinc-700 transition-colors"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                  <div className="flex items-start gap-3">
+                    <div className={`w-10 h-10 shrink-0 rounded-lg flex items-center justify-center ${
                       isAliveStatus(agent.status)
                         ? agent.status === 'busy' 
                           ? 'bg-orange-500/10 border border-orange-500/20'
@@ -234,23 +234,20 @@ export default function AgentsPage() {
                           : 'text-zinc-500'
                       }`} />
                     </div>
-                    <div>
-                      <p className="font-medium text-white">{agent.name || agent.agent_id}</p>
-                      <div className="flex items-center gap-2 text-sm text-zinc-500">
-                        <span>{agent.role}</span>
-                        <span>•</span>
-                        <span>{agent.model}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-medium text-white truncate">{agent.name || agent.agent_id}</p>
+                        <span className={`shrink-0 px-2 py-0.5 rounded-md text-xs font-medium border ${getStatusColor(agent.status)}`}>
+                          {agent.status}
+                        </span>
                       </div>
+                      <p className="text-xs text-zinc-500 truncate mt-0.5">
+                        {agent.role} • {agent.model.split('/').pop()}
+                      </p>
+                      <p className="text-xs text-zinc-600 truncate mt-0.5">
+                        {agent.project_id} @ {agent.world_id}
+                      </p>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right text-sm text-zinc-500">
-                      <p>{agent.world_id}/{agent.env_id}</p>
-                      <p>{agent.project_id}</p>
-                    </div>
-                    <span className={`px-2.5 py-1 rounded-md text-xs font-medium border ${getStatusColor(agent.status)}`}>
-                      {agent.status}
-                    </span>
                   </div>
                 </Link>
               ))}
