@@ -273,14 +273,16 @@ created: {datetime.now().isoformat()}
         if existing and existing.session_key and existing.status in ["idle", "busy", "running"]:
             # Agent already running - send task to existing session instead
             if task:
+                self.registry.update_status(key, AgentStatus.BUSY)
                 send_result = self._send_to_session(existing.session_key, task)
                 if send_result.get("success"):
-                    self.registry.update_status(key, AgentStatus.BUSY)
                     # Log the interaction
                     self._write_log(world_id, env_id, project_id, agent_id, "user", task)
                     response_text = self._extract_response_text(send_result)
                     if response_text:
                         self._write_log(world_id, env_id, project_id, agent_id, "assistant", response_text)
+                    # Reset to idle after task completes
+                    self.registry.update_status(key, AgentStatus.IDLE)
                     return {
                         "success": True,
                         "action": "sent_to_existing",
@@ -288,6 +290,9 @@ created: {datetime.now().isoformat()}
                         "session_key": existing.session_key,
                         "clawdbot_result": send_result
                     }
+                else:
+                    # Task failed, reset to idle
+                    self.registry.update_status(key, AgentStatus.IDLE)
             else:
                 return {
                     "success": True,

@@ -47,10 +47,12 @@ export default function AgentsPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Active states: running, busy, idle (agent is alive)
-  const isActiveStatus = (status: string) => ['running', 'busy', 'idle'].includes(status);
-  const runningAgents = agents.filter(a => isActiveStatus(a.status));
-  const stoppedAgents = agents.filter(a => !isActiveStatus(a.status));
+  // Active states for "Running Agents" section = only busy (actively working)
+  const isBusyStatus = (status: string) => status === 'busy';
+  // Alive agents = busy or idle (have active session)
+  const isAliveStatus = (status: string) => ['busy', 'idle'].includes(status);
+  const runningAgents = agents.filter(a => isBusyStatus(a.status));
+  const stoppedAgents = agents.filter(a => !isAliveStatus(a.status));
   
   // Status badge colors
   const getStatusColor = (status: string) => {
@@ -216,7 +218,7 @@ export default function AgentsPage() {
                 >
                   <div className="flex items-center gap-4">
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                      isActiveStatus(agent.status)
+                      isAliveStatus(agent.status)
                         ? agent.status === 'busy' 
                           ? 'bg-orange-500/10 border border-orange-500/20'
                           : agent.status === 'idle'
@@ -225,7 +227,7 @@ export default function AgentsPage() {
                         : 'bg-zinc-800 border border-zinc-700'
                     }`}>
                       <Bot className={`w-5 h-5 ${
-                        isActiveStatus(agent.status)
+                        isAliveStatus(agent.status)
                           ? agent.status === 'busy' ? 'text-orange-400' 
                             : agent.status === 'idle' ? 'text-blue-400' 
                             : 'text-green-400'
