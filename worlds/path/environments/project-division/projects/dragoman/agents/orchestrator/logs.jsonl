@@ -12,3 +12,5 @@
 {"id": "7d4d0d55", "timestamp": "2026-03-19T16:11:28.617335", "role": "assistant", "content": "Geldi ✓"}
 {"id": "3c3d566a", "timestamp": "2026-03-19T16:12:05.359525", "role": "user", "content": "test mesaj 2"}
 {"id": "03e1d736", "timestamp": "2026-03-19T16:12:05.359768", "role": "assistant", "content": "✓"}
+{"id": "63aa09dc", "timestamp": "2026-03-19T16:17:06.634128", "role": "user", "content": "analyst'e hazırladığı analizi repo'ya pushlamasını söyler misin?"}
+{"id": "4f11b6ca", "timestamp": "2026-03-19T16:17:06.634662", "role": "assistant", "content": "Zaten pushladı! Analyst agent tamamlandığında direkt repoya commitleyip pushladı.\n\nKontrol et: https://github.com/cengizreispath/dragoman\n\n5 doküman var:\n- README.md\n- docs/ANALYSIS.md\n- docs/REQUIREMENTS.md\n- docs/USER-FLOWS.md\n- docs/TECH-STACK.md"}
