@@ -43,10 +43,10 @@ from pathlib import Path
 # Add lib to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from memory_system import MemorySystem
+from memory_system import MemorySystem, get_data_dir
 from agent_spawner import AgentSpawner, AgentRegistry
 
-KHANATE_DIR = Path("/root/khanate")
+KHANATE_DIR = get_data_dir()
 
 
 def success(data=None, message=None):

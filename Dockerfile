@@ -1,38 +1,54 @@
-FROM node:22-alpine AS base
-
-# Install dependencies only when needed
-FROM base AS deps
+# Build stage for Next.js dashboard
+FROM node:22-alpine AS dashboard-builder
 WORKDIR /app
 
 COPY dashboard/package*.json ./
 RUN npm ci
 
-# Build the application
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
 COPY dashboard/ .
-
 RUN npm run build
 
-# Production image
-FROM base AS runner
+# Production image with Python + Node
+FROM node:22-alpine AS runner
 WORKDIR /app
 
+# Install Python for Khanate CLI
+RUN apk add --no-cache python3 py3-pip py3-yaml
+
+# Copy Khanate CLI and libs
+COPY lib/python /app/lib/python
+RUN chmod +x /app/lib/python/*.py
+
+# Create khanate CLI wrapper
+RUN echo '#!/bin/sh' > /usr/local/bin/khanate && \
+    echo 'python3 /app/lib/python/khanate_cli.py "$@"' >> /usr/local/bin/khanate && \
+    chmod +x /usr/local/bin/khanate
+
+# Copy entrypoint
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Setup for Next.js
 ENV NODE_ENV=production
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Copy dashboard build
+COPY --from=dashboard-builder /app/public ./public
+COPY --from=dashboard-builder /app/.next/standalone ./
+COPY --from=dashboard-builder /app/.next/static ./.next/static
 
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Copy default templates
+COPY templates /app/templates
 
-USER nextjs
+# Create data directories with proper permissions
+RUN mkdir -p /data/worlds /data/registry /data/templates && \
+    chmod -R 777 /data
+
+# Environment
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+ENV KHANATE_DATA_DIR=/data
 
 EXPOSE 3000
 
-ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
-
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["node", "server.js"]

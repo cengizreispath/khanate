@@ -16,9 +16,9 @@ from typing import Optional, List, Dict, Any
 from dataclasses import dataclass, asdict
 from enum import Enum
 
-from memory_system import MemorySystem
+from memory_system import MemorySystem, get_data_dir
 
-KHANATE_DIR = Path("/root/khanate")
+KHANATE_DIR = get_data_dir()
 REGISTRY_FILE = KHANATE_DIR / "registry" / "agents.json"
 WORLDS_DIR = KHANATE_DIR / "worlds"
 

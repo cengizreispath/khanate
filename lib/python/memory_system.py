@@ -12,11 +12,16 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
 
-WORLDS_DIR = Path("/root/khanate/worlds")
+def get_data_dir():
+    """Get data directory from env or default"""
+    data_dir = os.environ.get("KHANATE_DATA_DIR", "/root/khanate")
+    return Path(data_dir)
+
+WORLDS_DIR = get_data_dir() / "worlds"
 
 class MemorySystem:
-    def __init__(self, worlds_dir: Path = WORLDS_DIR):
-        self.worlds_dir = worlds_dir
+    def __init__(self, worlds_dir: Path = None):
+        self.worlds_dir = worlds_dir or get_data_dir() / "worlds"
     
     # =========== WORLD ===========
     
