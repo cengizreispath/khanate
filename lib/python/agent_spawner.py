@@ -324,6 +324,9 @@ created: {datetime.now().isoformat()}
             self.registry.update_status(key, AgentStatus.ERROR, spawn_result.get("error"))
             return spawn_result
         
+        # Register session in Clawdbot's sessions.json for sessions_send compatibility
+        self._register_clawdbot_session(session_key, world_id, env_id, project_id, agent_id)
+        
         # Update instance with session key
         instance.session_key = session_key
         instance.started_at = datetime.now().isoformat()
@@ -337,6 +340,50 @@ created: {datetime.now().isoformat()}
             "session_key": session_key,
             "clawdbot_result": spawn_result
         }
+    
+    def _register_clawdbot_session(self, session_key: str, world_id: str, env_id: str, 
+                                      project_id: str, agent_id: str) -> bool:
+        """Register session in Clawdbot's sessions.json so sessions_send can find it"""
+        import uuid
+        
+        sessions_file = Path.home() / ".clawdbot" / "agents" / "main" / "sessions" / "sessions.json"
+        
+        if not sessions_file.exists():
+            return False
+        
+        try:
+            with open(sessions_file, 'r') as f:
+                sessions = json.load(f)
+            
+            # Create session entry compatible with Clawdbot format
+            session_uuid = str(uuid.uuid4())
+            sessions[session_key] = {
+                "sessionId": session_uuid,
+                "updatedAt": int(datetime.now().timestamp() * 1000),
+                "systemSent": True,
+                "abortedLastRun": False,
+                "chatType": "agent",
+                "khanate": {
+                    "worldId": world_id,
+                    "envId": env_id,
+                    "projectId": project_id,
+                    "agentId": agent_id
+                },
+                "sessionFile": str(sessions_file.parent / f"{session_key}.jsonl")
+            }
+            
+            with open(sessions_file, 'w') as f:
+                json.dump(sessions, f, indent=2)
+            
+            # Create empty session file
+            session_file = sessions_file.parent / f"{session_key}.jsonl"
+            if not session_file.exists():
+                session_file.touch()
+            
+            return True
+        except Exception as e:
+            print(f"Error registering session: {e}")
+            return False
     
     def _spawn_via_clawdbot(self, session_key: str, task: str, model: str, label: str) -> Dict:
         """Spawn agent via Clawdbot CLI"""

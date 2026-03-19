@@ -1,0 +1,19 @@
+{
+  "updated_at": "2026-03-19T10:38:07.651114",
+  "agents": {
+    "orchestrator": {
+      "session_key": "khanate:path:project-division:dragoman:orchestrator:0a07e450",
+      "status": "idle",
+      "role": "orchestrator",
+      "name": "Orchestrator",
+      "last_activity": "2026-03-19T10:37:20.366047"
+    },
+    "developer": {
+      "session_key": "khanate:path:project-division:dragoman:developer:6128d07d",
+      "status": "idle",
+      "role": "developer",
+      "name": "Developer",
+      "last_activity": "2026-03-19T10:38:07.650329"
+    }
+  }
+}
