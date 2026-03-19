@@ -259,33 +259,41 @@ Agent işini bitirdiğinde sana sessions_send ile cevap verecek.
         if not template_path.exists():
             return {"success": False, "error": f"Template '{template_name}' not found"}
         
-        # Read template
-        with open(template_path) as f:
-            template = yaml.safe_load(f)
+        # Read template and parse YAML frontmatter
+        content = template_path.read_text()
+        template = {}
+        template_body = content
+        
+        if content.startswith("---"):
+            parts = content.split("---", 2)
+            if len(parts) >= 3:
+                try:
+                    template = yaml.safe_load(parts[1]) or {}
+                except Exception as e:
+                    return {"success": False, "error": f"Failed to parse template: {e}"}
+                template_body = parts[2].strip()
         
         # Create agent directory
         agent_path = WORLDS_DIR / world_id / "environments" / env_id / "projects" / project_id / "agents" / agent_id
         agent_path.mkdir(parents=True, exist_ok=True)
         (agent_path / "memory").mkdir(exist_ok=True)
         
-        # Create AGENT.md
+        # Create AGENT.md with template metadata and body
+        skills_list = template.get('skills', [])
+        skills_yaml = json.dumps(skills_list) if skills_list else '[]'
+        
         agent_md = f"""---
 type: agent
 id: {agent_id}
 name: {template.get('name', agent_id)}
-role: {template.get('type', 'agent')}
-model: {template.get('model', 'claude-sonnet-4')}
-skills: {template.get('skills', [])}
+role: {template.get('role', template.get('type', 'agent'))}
+model: {template.get('model', 'claude-sonnet-4-5')}
+skills: {skills_yaml}
+description: {template.get('description', '')}
 created: {datetime.now().isoformat()}
 ---
 
-# Agent: {template.get('name', agent_id)}
-
-## Soul
-{template.get('soul', 'AI assistant')}
-
-## Skills
-{', '.join(template.get('skills', []))}
+{template_body}
 """
         (agent_path / "AGENT.md").write_text(agent_md)
         
