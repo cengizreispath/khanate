@@ -35,6 +35,7 @@ export default function ProjectDetailPage() {
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [task, setTask] = useState('');
   const [spawning, setSpawning] = useState(false);
+  const [spawnError, setSpawnError] = useState('');
 
   useEffect(() => {
     fetchProject();
@@ -57,21 +58,27 @@ export default function ProjectDetailPage() {
   const handleSpawn = async (e: React.FormEvent) => {
     e.preventDefault();
     setSpawning(true);
+    setSpawnError('');
     try {
+      console.log('Spawning agent:', { template: selectedTemplate, task });
       const res = await fetch(`/api/worlds/${worldId}/environments/${envId}/projects/${projectId}/agents`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ template: selectedTemplate, task }),
       });
       const data = await res.json();
+      console.log('Spawn response:', data);
       if (data.success) {
         setShowSpawn(false);
         setSelectedTemplate('');
         setTask('');
         fetchProject();
+      } else {
+        setSpawnError(data.error || 'Failed to spawn agent');
       }
     } catch (error) {
       console.error('Failed to spawn agent:', error);
+      setSpawnError('Network error');
     } finally {
       setSpawning(false);
     }
@@ -249,8 +256,13 @@ export default function ProjectDetailPage() {
                     rows={3}
                   />
                 </div>
+                {spawnError && (
+                  <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+                    {spawnError}
+                  </div>
+                )}
                 <div className="flex gap-3 justify-end pt-4">
-                  <Button type="button" variant="ghost" onClick={() => setShowSpawn(false)}>
+                  <Button type="button" variant="ghost" onClick={() => { setShowSpawn(false); setSpawnError(''); }}>
                     Cancel
                   </Button>
                   <Button type="submit" disabled={spawning || !selectedTemplate}>
