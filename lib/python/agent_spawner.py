@@ -61,9 +61,17 @@ class AgentRegistry:
     
     def _load(self):
         if self.registry_file.exists():
-            with open(self.registry_file) as f:
-                data = json.load(f)
-                self.agents = {k: AgentInstance(**v) for k, v in data.get("agents", {}).items()}
+            try:
+                with open(self.registry_file) as f:
+                    data = json.load(f)
+                    agents_data = data.get("agents", {})
+                    # Handle both dict and list formats (backwards compat)
+                    if isinstance(agents_data, dict):
+                        self.agents = {k: AgentInstance(**v) for k, v in agents_data.items()}
+                    else:
+                        self.agents = {}  # Reset if wrong format
+            except Exception:
+                self.agents = {}
         else:
             self.agents = {}
     
