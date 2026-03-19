@@ -8,8 +8,8 @@ services:
       - KHANATE_DATA_DIR=/data
       - NODE_ENV=production
     volumes:
-      - khanate-worlds:/data/worlds
-      - khanate-registry:/data/registry
+      - /root/khanate/worlds:/data/worlds
+      - /root/khanate/registry:/data/registry
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
@@ -18,7 +18,3 @@ services:
       - "traefik.http.routers.khanate.tls=true"
       - "traefik.http.routers.khanate.tls.certresolver=letsencrypt"
       - "traefik.http.services.khanate.loadbalancer.server.port=3000"
-
-volumes:
-  khanate-worlds:
-  khanate-registry:
