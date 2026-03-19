@@ -3,6 +3,10 @@ import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 
+// Host API URL (khanate-api.py runs on host:19100)
+// In Docker: use host.docker.internal or the host's IP
+const KHANATE_API_URL = process.env.KHANATE_API_URL || 'http://host.docker.internal:19100';
+
 export interface KhanateResponse {
   success: boolean;
   message?: string;
@@ -11,6 +15,7 @@ export interface KhanateResponse {
   data?: any;
 }
 
+// CLI-based commands (for local operations that don't need clawdbot)
 export async function khanate(command: string): Promise<KhanateResponse> {
   try {
     const { stdout, stderr } = await execAsync(`/usr/local/bin/khanate ${command}`);
@@ -30,7 +35,31 @@ export async function khanate(command: string): Promise<KhanateResponse> {
   }
 }
 
-// Convenience functions
+// HTTP API-based commands (for operations that need clawdbot on host)
+async function khanateHttp(path: string, method: 'GET' | 'POST' = 'GET', body?: Record<string, unknown>): Promise<KhanateResponse> {
+  try {
+    const options: RequestInit = {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+    };
+    
+    if (body) {
+      options.body = JSON.stringify(body);
+    }
+    
+    const res = await fetch(`${KHANATE_API_URL}${path}`, options);
+    const data = await res.json();
+    return data;
+  } catch (error) {
+    console.error('Khanate HTTP error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+// Convenience functions - CLI based (local operations)
 export const khanateStatus = () => khanate('status');
 export const khanateWorldList = () => khanate('world list');
 export const khanateWorldGet = (id: string) => khanate(`world get ${id}`);
@@ -44,13 +73,34 @@ export const khanateProjectList = (worldId: string, envId: string) =>
 export const khanateProjectGet = (worldId: string, envId: string, projectId: string) => 
   khanate(`project get ${worldId} ${envId} ${projectId}`);
 
-export const khanateAgentList = () => khanate('agent list');
-export const khanateAgentStatus = () => khanate('agent status');
-export const khanateAgentSpawn = (worldId: string, envId: string, projectId: string, agentId: string, task?: string, template?: string) => {
-  let cmd = `agent spawn ${worldId} ${envId} ${projectId} ${agentId}`;
-  if (template) cmd += ` --template=${template}`;
-  if (task) cmd += ` --task="${task}"`;
-  return khanate(cmd);
-};
-export const khanateAgentStop = (worldId: string, envId: string, projectId: string, agentId: string) =>
-  khanate(`agent stop ${worldId} ${envId} ${projectId} ${agentId}`);
+// Agent operations - HTTP based (need clawdbot on host)
+export const khanateAgentList = () => khanateHttp('/agents');
+export const khanateAgentStatus = () => khanateHttp('/agents');
+
+export const khanateAgentSpawn = (
+  worldId: string, 
+  envId: string, 
+  projectId: string, 
+  agentId: string, 
+  task?: string, 
+  template?: string
+) => khanateHttp('/agent/spawn', 'POST', {
+  worldId,
+  envId,
+  projectId,
+  agentId,
+  task: task || '',
+  template: template || undefined
+});
+
+export const khanateAgentStop = (
+  worldId: string, 
+  envId: string, 
+  projectId: string, 
+  agentId: string
+) => khanateHttp('/agent/stop', 'POST', {
+  worldId,
+  envId,
+  projectId,
+  agentId
+});

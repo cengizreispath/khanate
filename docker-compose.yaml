@@ -7,6 +7,9 @@ services:
       - KHANATE_TOKEN=${KHANATE_TOKEN:-khan-2026-secret}
       - KHANATE_DATA_DIR=/data
       - NODE_ENV=production
+      - KHANATE_API_URL=http://host.docker.internal:19100
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - /root/khanate/worlds:/data/worlds
       - /root/khanate/registry:/data/registry
