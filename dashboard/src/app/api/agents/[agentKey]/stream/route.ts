@@ -3,6 +3,10 @@ import { NextRequest } from 'next/server';
 const KHANATE_API = process.env.KHANATE_API_URL || 'http://host.docker.internal:19100';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
+// Helper to delay
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export async function GET(
   request: NextRequest,
@@ -18,21 +22,18 @@ export async function GET(
   const encoder = new TextEncoder();
   let lastLogCount = 0;
   let lastStatus = '';
-  let isConnected = true;
 
   const stream = new ReadableStream({
     async start(controller) {
       // Send initial connection message
       controller.enqueue(encoder.encode(`event: connected\ndata: {"agentKey":"${agentKey}"}\n\n`));
 
-      // Poll for updates every 2 seconds
-      const poll = async () => {
-        if (!isConnected) return;
-
+      // Continuous polling loop
+      while (true) {
         try {
           // Fetch logs
           const logsUrl = `${KHANATE_API}/agent/logs?worldId=${worldId}&envId=${envId}&projectId=${projectId}&agentId=${agentId}&limit=100`;
-          const logsRes = await fetch(logsUrl);
+          const logsRes = await fetch(logsUrl, { cache: 'no-store' });
           const logsData = await logsRes.json();
 
           if (logsData.success && logsData.data?.logs) {
@@ -53,7 +54,7 @@ export async function GET(
 
           // Fetch status
           const statusUrl = `${KHANATE_API}/agent/status?worldId=${worldId}&envId=${envId}&projectId=${projectId}&agentId=${agentId}`;
-          const statusRes = await fetch(statusUrl);
+          const statusRes = await fetch(statusUrl, { cache: 'no-store' });
           const statusData = await statusRes.json();
 
           if (statusData.success && statusData.agent) {
@@ -66,24 +67,22 @@ export async function GET(
             }
           }
 
-          // Send heartbeat
+          // Send heartbeat to keep connection alive
           controller.enqueue(encoder.encode(`:heartbeat\n\n`));
 
         } catch (error) {
-          console.error('SSE poll error:', error);
+          // Log error but continue polling
+          controller.enqueue(
+            encoder.encode(`event: error\ndata: ${JSON.stringify({ error: String(error) })}\n\n`)
+          );
         }
 
-        // Continue polling
-        if (isConnected) {
-          setTimeout(poll, 2000);
-        }
-      };
-
-      // Start polling
-      poll();
+        // Wait 2 seconds before next poll
+        await sleep(2000);
+      }
     },
     cancel() {
-      isConnected = false;
+      // Connection closed by client
     }
   });
 
