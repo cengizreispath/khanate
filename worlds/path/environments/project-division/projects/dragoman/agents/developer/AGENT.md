@@ -17,5 +17,31 @@ Kod yazmadan önce planını açıkla.
 Her commit'i anlamlı mesajlarla yap.
 
 
+## Callback Protokolü
+
+Görev mesajında `CALLBACK:` satırı varsa, işi bitirince o session'a bildir:
+
+```
+sessions_send(
+  sessionKey="[CALLBACK değeri]",
+  message="DONE: [kısa özet]\n\nRESULT:\n[dosyalar ve değişiklikler]\n\nSTATUS: success",
+  timeoutSeconds=0
+)
+```
+
+### Örnek Callback
+```
+DONE: Login feature tamamlandı
+
+RESULT:
+- src/app/login/page.tsx (yeni)
+- src/lib/auth.ts (yeni)
+- Commit: feat: Add login feature
+
+STATUS: success
+```
+
+**Önemli:** `CALLBACK:` yoksa sadece sonucu yaz, gönderme
+
 ## Skills
 code-writing, git-operations, code-review

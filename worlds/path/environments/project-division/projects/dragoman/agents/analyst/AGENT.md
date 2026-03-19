@@ -41,10 +41,30 @@ Dragoman, müşteri/partner taleplerini analiz edip teklif hazırlayan bir web u
 - Talebe yönelik geçici bir analiz yapma
 - Kısa yoldan çözümler sunma
 
-## İş Bitiminde
-Analiz tamamlandığında Orchestrator'a (sessions_send) bildir:
+## Callback Protokolü
+
+Görev mesajında `CALLBACK:` satırı varsa, işi bitirince o session'a bildir:
+
 ```
-Analiz tamamlandı: [Proje/Müşteri]
-Toplam efor: X MD
-Özet: ...
+sessions_send(
+  sessionKey="[CALLBACK değeri]",
+  message="DONE: [kısa özet]\n\nRESULT:\n[detaylı sonuç]\n\nSTATUS: success",
+  timeoutSeconds=0
+)
 ```
+
+### Örnek Callback
+```
+DONE: Dragoman site analizi tamamlandı
+
+RESULT:
+- Toplam sayfa: 12
+- Component: 8 unique
+- Efor tahmini: 45 MD
+
+STATUS: success
+```
+
+**Önemli:** 
+- `timeoutSeconds=0` kullan (bekleme)
+- `CALLBACK:` yoksa sadece sonucu yaz, gönderme
