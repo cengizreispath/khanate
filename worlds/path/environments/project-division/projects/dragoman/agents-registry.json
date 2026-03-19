@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-03-19T10:38:07.651114",
+  "updated_at": "2026-03-19T10:54:09.060377",
   "agents": {
     "orchestrator": {
       "session_key": "khanate:path:project-division:dragoman:orchestrator:0a07e450",
@@ -14,6 +14,13 @@
       "role": "developer",
       "name": "Developer",
       "last_activity": "2026-03-19T10:38:07.650329"
+    },
+    "analyst": {
+      "session_key": "khanate:path:project-division:dragoman:analyst:761ba464",
+      "status": "idle",
+      "role": "analyst",
+      "name": "Analyst",
+      "last_activity": "2026-03-19T10:54:09.059906"
     }
   }
 }

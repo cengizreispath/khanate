@@ -4,8 +4,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
-  Bot, ArrowLeft, Play, Square, RefreshCw, Clock, 
-  MessageSquare, Cpu, Zap, AlertCircle, CheckCircle
+  Bot, ArrowLeft, Play, Square, RefreshCw, 
+  MessageSquare, Cpu, Zap, AlertCircle, CheckCircle, Send
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,6 +38,13 @@ interface AgentDetails {
   content?: string;
 }
 
+interface LogEntry {
+  id: string;
+  timestamp: string;
+  role: string;
+  content: string;
+}
+
 export default function AgentDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -45,11 +52,14 @@ export default function AgentDetailPage() {
   const [worldId, envId, projectId, agentId] = agentKey.split('/');
   
   const [agent, setAgent] = useState<AgentDetails | null>(null);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [spawning, setSpawning] = useState(false);
   const [stopping, setStopping] = useState(false);
+  const [sendingTask, setSendingTask] = useState(false);
   const [task, setTask] = useState('');
   const [showTaskInput, setShowTaskInput] = useState(false);
+  const [showSendTask, setShowSendTask] = useState(false);
 
   const fetchAgent = useCallback(async () => {
     try {
@@ -65,12 +75,27 @@ export default function AgentDetailPage() {
     }
   }, [agentKey]);
 
+  const fetchLogs = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/agents/${encodeURIComponent(agentKey)}/logs`);
+      const data = await res.json();
+      if (data.success && data.data?.logs) {
+        setLogs(data.data.logs);
+      }
+    } catch (error) {
+      console.error('Failed to fetch logs:', error);
+    }
+  }, [agentKey]);
+
   useEffect(() => {
     fetchAgent();
-    // Poll for status updates
-    const interval = setInterval(fetchAgent, 5000);
+    fetchLogs();
+    const interval = setInterval(() => {
+      fetchAgent();
+      fetchLogs();
+    }, 5000);
     return () => clearInterval(interval);
-  }, [fetchAgent]);
+  }, [fetchAgent, fetchLogs]);
 
   const handleSpawn = async () => {
     setSpawning(true);
@@ -85,6 +110,7 @@ export default function AgentDetailPage() {
         setShowTaskInput(false);
         setTask('');
         fetchAgent();
+        fetchLogs();
       } else {
         alert(data.error || 'Failed to spawn agent');
       }
@@ -92,6 +118,34 @@ export default function AgentDetailPage() {
       console.error('Failed to spawn:', error);
     } finally {
       setSpawning(false);
+    }
+  };
+
+  const handleSendTask = async () => {
+    if (!task.trim() || !agent?.instance?.session_key) return;
+    
+    setSendingTask(true);
+    try {
+      const res = await fetch(`/api/agents/${encodeURIComponent(agentKey)}/task`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          task, 
+          sessionKey: agent.instance.session_key 
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setShowSendTask(false);
+        setTask('');
+        fetchLogs();
+      } else {
+        alert(data.error || 'Failed to send task');
+      }
+    } catch (error) {
+      console.error('Failed to send task:', error);
+    } finally {
+      setSendingTask(false);
     }
   };
 
@@ -134,7 +188,7 @@ export default function AgentDetailPage() {
   }
 
   const instance = agent?.instance;
-  const isRunning = instance?.status === 'running';
+  const isRunning = instance?.status === 'idle' || instance?.status === 'busy' || instance?.status === 'running';
   const hasError = instance?.status === 'error';
 
   return (
@@ -183,14 +237,20 @@ export default function AgentDetailPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="ghost" size="icon" onClick={fetchAgent}>
+            <Button variant="ghost" size="icon" onClick={() => { fetchAgent(); fetchLogs(); }}>
               <RefreshCw className="w-5 h-5" />
             </Button>
             {isRunning ? (
-              <Button variant="destructive" onClick={handleStop} disabled={stopping}>
-                <Square className="w-4 h-4 mr-2" />
-                {stopping ? 'Stopping...' : 'Stop'}
-              </Button>
+              <>
+                <Button variant="outline" onClick={() => setShowSendTask(true)}>
+                  <Send className="w-4 h-4 mr-2" />
+                  Task Gönder
+                </Button>
+                <Button variant="destructive" onClick={handleStop} disabled={stopping}>
+                  <Square className="w-4 h-4 mr-2" />
+                  {stopping ? 'Stopping...' : 'Stop'}
+                </Button>
+              </>
             ) : (
               <Button onClick={() => setShowTaskInput(true)}>
                 <Play className="w-4 h-4 mr-2" />
@@ -220,9 +280,9 @@ export default function AgentDetailPage() {
       <Tabs defaultValue="overview">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="logs">Logs ({logs.length})</TabsTrigger>
           <TabsTrigger value="content">AGENT.md</TabsTrigger>
           <TabsTrigger value="memory">Memory</TabsTrigger>
-          <TabsTrigger value="logs">Logs</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -305,17 +365,78 @@ export default function AgentDetailPage() {
               </CardHeader>
               <CardContent>
                 <div className="p-4 bg-green-500/5 border border-green-500/20 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-400" />
-                    <div>
-                      <p className="text-green-400 font-medium">Agent Running</p>
-                      <p className="text-sm text-zinc-400">Session: {instance.session_key}</p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-400" />
+                      <div>
+                        <p className="text-green-400 font-medium">Agent Ready</p>
+                        <p className="text-sm text-zinc-400">Session: {instance.session_key}</p>
+                      </div>
                     </div>
+                    <Button onClick={() => setShowSendTask(true)}>
+                      <Send className="w-4 h-4 mr-2" />
+                      Task Gönder
+                    </Button>
                   </div>
                 </div>
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        {/* Logs Tab */}
+        <TabsContent value="logs">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Session Logs</CardTitle>
+                <CardDescription>Agent konuşma geçmişi</CardDescription>
+              </div>
+              <Button variant="ghost" size="icon" onClick={fetchLogs}>
+                <RefreshCw className="w-4 h-4" />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {logs.length > 0 ? (
+                <div className="space-y-4 max-h-[600px] overflow-y-auto">
+                  {logs.map((log) => (
+                    <div
+                      key={log.id}
+                      className={`p-4 rounded-lg ${
+                        log.role === 'assistant'
+                          ? 'bg-blue-500/10 border border-blue-500/20'
+                          : log.role === 'user'
+                          ? 'bg-zinc-800 border border-zinc-700'
+                          : 'bg-zinc-900 border border-zinc-800'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`text-xs font-medium ${
+                          log.role === 'assistant' ? 'text-blue-400' : 'text-zinc-400'
+                        }`}>
+                          {log.role === 'assistant' ? '🤖 Agent' : '👤 Task'}
+                        </span>
+                        <span className="text-xs text-zinc-600">
+                          {new Date(log.timestamp).toLocaleString('tr-TR')}
+                        </span>
+                      </div>
+                      <div className="text-sm text-zinc-300 whitespace-pre-wrap">
+                        {log.content}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-12 text-center">
+                  <MessageSquare className="w-12 h-12 text-zinc-700 mx-auto mb-4" />
+                  <p className="text-zinc-500">Henüz log yok</p>
+                  <p className="text-zinc-600 text-sm mt-1">
+                    Agent çalıştığında loglar burada görünecek
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* AGENT.md Tab */}
@@ -335,28 +456,9 @@ export default function AgentDetailPage() {
             entityType="agent"
           />
         </TabsContent>
-
-        {/* Logs Tab */}
-        <TabsContent value="logs">
-          <Card>
-            <CardHeader>
-              <CardTitle>Session Logs</CardTitle>
-              <CardDescription>Agent session activity (coming soon)</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="py-12 text-center">
-                <MessageSquare className="w-12 h-12 text-zinc-700 mx-auto mb-4" />
-                <p className="text-zinc-500">Log viewer coming soon</p>
-                <p className="text-zinc-600 text-sm mt-1">
-                  Session key: {instance?.session_key || 'Not running'}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
 
-      {/* Task Input Modal */}
+      {/* Spawn Modal */}
       {showTaskInput && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
           <Card className="w-full max-w-md mx-4">
@@ -383,6 +485,42 @@ export default function AgentDetailPage() {
                   <Button onClick={handleSpawn} disabled={spawning}>
                     <Play className="w-4 h-4 mr-2" />
                     {spawning ? 'Spawning...' : 'Spawn'}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Send Task Modal */}
+      {showSendTask && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <Card className="w-full max-w-lg mx-4">
+            <CardHeader>
+              <CardTitle>Task Gönder</CardTitle>
+              <CardDescription>Çalışan agent'a yeni görev gönder</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm text-zinc-400">Task</label>
+                  <textarea
+                    value={task}
+                    onChange={(e) => setTask(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
+                    placeholder="Agent'a ne yapmasını istiyorsun?"
+                    rows={6}
+                    autoFocus
+                  />
+                </div>
+                <div className="flex gap-3 justify-end pt-4">
+                  <Button variant="ghost" onClick={() => { setShowSendTask(false); setTask(''); }}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSendTask} disabled={sendingTask || !task.trim()}>
+                    <Send className="w-4 h-4 mr-2" />
+                    {sendingTask ? 'Gönderiliyor...' : 'Gönder'}
                   </Button>
                 </div>
               </div>
