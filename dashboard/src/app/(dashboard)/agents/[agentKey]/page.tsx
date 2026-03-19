@@ -353,15 +353,15 @@ export default function AgentDetailPage() {
               </CardHeader>
               <CardContent>
                 <div className="p-4 bg-green-500/5 border border-green-500/20 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <CheckCircle className="w-5 h-5 text-green-400" />
-                      <div>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <CheckCircle className="w-5 h-5 text-green-400 shrink-0" />
+                      <div className="min-w-0">
                         <p className="text-green-400 font-medium">Agent Ready</p>
-                        <p className="text-sm text-zinc-400">Session: {instance.session_key}</p>
+                        <p className="text-sm text-zinc-400 truncate">Session: ...{instance.session_key.slice(-25)}</p>
                       </div>
                     </div>
-                    <Button onClick={() => setShowSendTask(true)}>
+                    <Button onClick={() => setShowSendTask(true)} className="w-full sm:w-auto shrink-0">
                       <Send className="w-4 h-4 mr-2" />
                       Task Gönder
                     </Button>
