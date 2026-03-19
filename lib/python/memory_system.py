@@ -59,6 +59,72 @@ created: {datetime.now().isoformat()}
         (world_path / "WORLD.md").write_text(world_md)
         return {"id": world_id, "name": name, "path": str(world_path)}
     
+    def update_world(self, world_id: str, name: str = None, description: str = None, metadata: Dict = None) -> Dict:
+        """Update world details"""
+        world_path = self.worlds_dir / world_id
+        world_file = world_path / "WORLD.md"
+        
+        if not world_file.exists():
+            return {"success": False, "error": "World not found"}
+        
+        existing = self._read_entity(world_path, "WORLD.md")
+        existing_meta = existing.get("metadata", {})
+        
+        if name:
+            existing_meta["name"] = name
+        if description:
+            existing_meta["description"] = description
+        if metadata:
+            existing_meta.update(metadata)
+        existing_meta["updated"] = datetime.now().isoformat()
+        
+        yaml_header = yaml.dump(existing_meta, default_flow_style=False, allow_unicode=True)
+        content = existing.get("content", "")
+        
+        world_md = f"""---
+{yaml_header}---
+
+# World: {existing_meta.get('name', world_id)}
+
+{existing_meta.get('description', '')}
+
+{content}
+"""
+        world_file.write_text(world_md)
+        return {"id": world_id, "updated": True}
+    
+    def delete_world(self, world_id: str) -> Dict:
+        """Delete a world"""
+        import shutil
+        world_path = self.worlds_dir / world_id
+        
+        if not world_path.exists():
+            return {"success": False, "error": "World not found"}
+        
+        shutil.rmtree(world_path)
+        return {"id": world_id, "deleted": True}
+    
+    def update_world_content(self, world_id: str, content: str) -> Dict:
+        """Update world markdown content"""
+        world_path = self.worlds_dir / world_id
+        world_file = world_path / "WORLD.md"
+        
+        if not world_file.exists():
+            return {"success": False, "error": "World not found"}
+        
+        existing = self._read_entity(world_path, "WORLD.md")
+        existing_meta = existing.get("metadata", {})
+        existing_meta["updated"] = datetime.now().isoformat()
+        
+        yaml_header = yaml.dump(existing_meta, default_flow_style=False, allow_unicode=True)
+        world_md = f"""---
+{yaml_header}---
+
+{content}
+"""
+        world_file.write_text(world_md)
+        return {"id": world_id, "updated": True}
+    
     # =========== ENVIRONMENT ===========
     
     def list_environments(self, world_id: str) -> List[str]:
@@ -96,6 +162,72 @@ created: {datetime.now().isoformat()}
 """
         (env_path / "ENV.md").write_text(env_md)
         return {"id": env_id, "name": name, "world": world_id, "path": str(env_path)}
+    
+    def update_environment(self, world_id: str, env_id: str, name: str = None, description: str = None, metadata: Dict = None) -> Dict:
+        """Update environment details"""
+        env_path = self.worlds_dir / world_id / "environments" / env_id
+        env_file = env_path / "ENV.md"
+        
+        if not env_file.exists():
+            return {"success": False, "error": "Environment not found"}
+        
+        existing = self._read_entity(env_path, "ENV.md")
+        existing_meta = existing.get("metadata", {})
+        
+        if name:
+            existing_meta["name"] = name
+        if description:
+            existing_meta["description"] = description
+        if metadata:
+            existing_meta.update(metadata)
+        existing_meta["updated"] = datetime.now().isoformat()
+        
+        yaml_header = yaml.dump(existing_meta, default_flow_style=False, allow_unicode=True)
+        content = existing.get("content", "")
+        
+        env_md = f"""---
+{yaml_header}---
+
+# Environment: {existing_meta.get('name', env_id)}
+
+{existing_meta.get('description', '')}
+
+{content}
+"""
+        env_file.write_text(env_md)
+        return {"id": env_id, "updated": True}
+    
+    def delete_environment(self, world_id: str, env_id: str) -> Dict:
+        """Delete an environment"""
+        import shutil
+        env_path = self.worlds_dir / world_id / "environments" / env_id
+        
+        if not env_path.exists():
+            return {"success": False, "error": "Environment not found"}
+        
+        shutil.rmtree(env_path)
+        return {"id": env_id, "deleted": True}
+    
+    def update_environment_content(self, world_id: str, env_id: str, content: str) -> Dict:
+        """Update environment markdown content"""
+        env_path = self.worlds_dir / world_id / "environments" / env_id
+        env_file = env_path / "ENV.md"
+        
+        if not env_file.exists():
+            return {"success": False, "error": "Environment not found"}
+        
+        existing = self._read_entity(env_path, "ENV.md")
+        existing_meta = existing.get("metadata", {})
+        existing_meta["updated"] = datetime.now().isoformat()
+        
+        yaml_header = yaml.dump(existing_meta, default_flow_style=False, allow_unicode=True)
+        env_md = f"""---
+{yaml_header}---
+
+{content}
+"""
+        env_file.write_text(env_md)
+        return {"id": env_id, "updated": True}
     
     # =========== PROJECT ===========
     
@@ -236,6 +368,52 @@ status: active
     def set_memory_file(self, world_id: str, env_id: str, project_id: str, filename: str, content: str) -> Dict:
         """Set memory file content"""
         memory_path = self.worlds_dir / world_id / "environments" / env_id / "projects" / project_id / "memory"
+        memory_path.mkdir(exist_ok=True)
+        memory_file = memory_path / filename
+        memory_file.write_text(content)
+        return {"filename": filename, "updated": True}
+    
+    def _get_entity_memory_path(self, entity_type: str, world_id: str, env_id: str = None, project_id: str = None) -> Path:
+        """Get memory path for any entity type"""
+        if entity_type == "world":
+            return self.worlds_dir / world_id / "memory"
+        elif entity_type == "environment":
+            return self.worlds_dir / world_id / "environments" / env_id / "memory"
+        elif entity_type == "project":
+            return self.worlds_dir / world_id / "environments" / env_id / "projects" / project_id / "memory"
+        return None
+    
+    def list_memory_files_generic(self, entity_type: str, world_id: str, env_id: str = None, project_id: str = None) -> List[Dict]:
+        """List memory files for any entity type"""
+        memory_path = self._get_entity_memory_path(entity_type, world_id, env_id, project_id)
+        if not memory_path or not memory_path.exists():
+            return []
+        
+        files = []
+        for f in sorted(memory_path.iterdir(), reverse=True):
+            if f.is_file() and f.suffix == '.md':
+                files.append({
+                    "name": f.name,
+                    "date": f.stem,
+                    "size": f.stat().st_size
+                })
+        return files
+    
+    def get_memory_file_generic(self, entity_type: str, filename: str, world_id: str, env_id: str = None, project_id: str = None) -> str:
+        """Get memory file content for any entity type"""
+        memory_path = self._get_entity_memory_path(entity_type, world_id, env_id, project_id)
+        if not memory_path:
+            return ""
+        memory_file = memory_path / filename
+        if not memory_file.exists():
+            return ""
+        return memory_file.read_text()
+    
+    def set_memory_file_generic(self, entity_type: str, filename: str, content: str, world_id: str, env_id: str = None, project_id: str = None) -> Dict:
+        """Set memory file content for any entity type"""
+        memory_path = self._get_entity_memory_path(entity_type, world_id, env_id, project_id)
+        if not memory_path:
+            return {"success": False, "error": "Invalid entity type"}
         memory_path.mkdir(exist_ok=True)
         memory_file = memory_path / filename
         memory_file.write_text(content)

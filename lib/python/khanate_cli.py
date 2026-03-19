@@ -122,6 +122,25 @@ def handle_command(cmd, args, memory, spawner):
                 return success(data=result)
             return error(f"World '{world_id}' not found")
         
+        if subcmd == "update" and len(args) >= 2:
+            world_id = args[1]
+            name = description = metadata = None
+            for arg in args[2:]:
+                if arg.startswith("--name="):
+                    name = arg.split("=", 1)[1].strip('"')
+                elif arg.startswith("--description="):
+                    description = arg.split("=", 1)[1].strip('"')
+                elif arg.startswith("--metadata="):
+                    import json
+                    metadata = json.loads(arg.split("=", 1)[1].strip('"').replace('\\"', '"'))
+            result = memory.update_world(world_id, name, description, metadata)
+            return success(data=result, message="World updated")
+        
+        if subcmd == "delete" and len(args) >= 2:
+            world_id = args[1]
+            result = memory.delete_world(world_id)
+            return success(data=result, message="World deleted")
+        
         return error(f"Unknown world subcommand: {subcmd}")
     
     # ============ ENVIRONMENT ============
@@ -149,6 +168,25 @@ def handle_command(cmd, args, memory, spawner):
             if result:
                 return success(data=result)
             return error(f"Environment '{env_id}' not found")
+        
+        if subcmd == "update" and len(args) >= 3:
+            world_id, env_id = args[1], args[2]
+            name = description = metadata = None
+            for arg in args[3:]:
+                if arg.startswith("--name="):
+                    name = arg.split("=", 1)[1].strip('"')
+                elif arg.startswith("--description="):
+                    description = arg.split("=", 1)[1].strip('"')
+                elif arg.startswith("--metadata="):
+                    import json
+                    metadata = json.loads(arg.split("=", 1)[1].strip('"').replace('\\"', '"'))
+            result = memory.update_environment(world_id, env_id, name, description, metadata)
+            return success(data=result, message="Environment updated")
+        
+        if subcmd == "delete" and len(args) >= 3:
+            world_id, env_id = args[1], args[2]
+            result = memory.delete_environment(world_id, env_id)
+            return success(data=result, message="Environment deleted")
         
         return error(f"Unknown env subcommand: {subcmd}")
     
@@ -318,6 +356,14 @@ def handle_command(cmd, args, memory, spawner):
                 world_id, env_id, project_id = args[2], args[3], args[4]
                 result = memory.update_project_content(world_id, env_id, project_id, base64_content)
                 return success(data=result, message="Content updated")
+            elif entity_type == "world" and len(args) >= 3 and base64_content:
+                world_id = args[2]
+                result = memory.update_world_content(world_id, base64_content)
+                return success(data=result, message="Content updated")
+            elif entity_type == "environment" and len(args) >= 4 and base64_content:
+                world_id, env_id = args[2], args[3]
+                result = memory.update_environment_content(world_id, env_id, base64_content)
+                return success(data=result, message="Content updated")
         
         return error(f"Unknown content subcommand: {subcmd}")
     
@@ -333,7 +379,15 @@ def handle_command(cmd, args, memory, spawner):
             entity_type = args[1]
             if entity_type == "project" and len(args) >= 5:
                 world_id, env_id, project_id = args[2], args[3], args[4]
-                files = memory.list_memory_files(world_id, env_id, project_id)
+                files = memory.list_memory_files_generic("project", world_id, env_id, project_id)
+                return success(data={"files": files})
+            elif entity_type == "world" and len(args) >= 3:
+                world_id = args[2]
+                files = memory.list_memory_files_generic("world", world_id)
+                return success(data={"files": files})
+            elif entity_type == "environment" and len(args) >= 4:
+                world_id, env_id = args[2], args[3]
+                files = memory.list_memory_files_generic("environment", world_id, env_id)
                 return success(data={"files": files})
             return error("Invalid arguments for memory list")
         
@@ -341,7 +395,15 @@ def handle_command(cmd, args, memory, spawner):
             entity_type = args[1]
             if entity_type == "project" and len(args) >= 6:
                 world_id, env_id, project_id, filename = args[2], args[3], args[4], args[5]
-                content = memory.get_memory_file(world_id, env_id, project_id, filename)
+                content = memory.get_memory_file_generic("project", filename, world_id, env_id, project_id)
+                return success(data={"content": content, "filename": filename})
+            elif entity_type == "world" and len(args) >= 4:
+                world_id, filename = args[2], args[3]
+                content = memory.get_memory_file_generic("world", filename, world_id)
+                return success(data={"content": content, "filename": filename})
+            elif entity_type == "environment" and len(args) >= 5:
+                world_id, env_id, filename = args[2], args[3], args[4]
+                content = memory.get_memory_file_generic("environment", filename, world_id, env_id)
                 return success(data={"content": content, "filename": filename})
             return error("Invalid arguments for memory get")
         
@@ -352,6 +414,18 @@ def handle_command(cmd, args, memory, spawner):
                 content = args[5]
                 proj_path = memory.worlds_dir / world_id / "environments" / env_id / "projects" / project_id
                 result = memory.add_memory(proj_path, content)
+                return success(data={"file": result}, message="Memory added")
+            elif entity_type == "world" and len(args) >= 4:
+                world_id = args[2]
+                content = args[3]
+                world_path = memory.worlds_dir / world_id
+                result = memory.add_memory(world_path, content)
+                return success(data={"file": result}, message="Memory added")
+            elif entity_type == "environment" and len(args) >= 5:
+                world_id, env_id = args[2], args[3]
+                content = args[4]
+                env_path = memory.worlds_dir / world_id / "environments" / env_id
+                result = memory.add_memory(env_path, content)
                 return success(data={"file": result}, message="Memory added")
             return error("Invalid arguments for memory add")
         
@@ -366,7 +440,15 @@ def handle_command(cmd, args, memory, spawner):
             
             if entity_type == "project" and len(args) >= 6 and base64_content:
                 world_id, env_id, project_id, filename = args[2], args[3], args[4], args[5]
-                result = memory.set_memory_file(world_id, env_id, project_id, filename, base64_content)
+                result = memory.set_memory_file_generic("project", filename, base64_content, world_id, env_id, project_id)
+                return success(data=result, message="Memory file updated")
+            elif entity_type == "world" and len(args) >= 4 and base64_content:
+                world_id, filename = args[2], args[3]
+                result = memory.set_memory_file_generic("world", filename, base64_content, world_id)
+                return success(data=result, message="Memory file updated")
+            elif entity_type == "environment" and len(args) >= 5 and base64_content:
+                world_id, env_id, filename = args[2], args[3], args[4]
+                result = memory.set_memory_file_generic("environment", filename, base64_content, world_id, env_id)
                 return success(data=result, message="Memory file updated")
             return error("Invalid arguments for memory set")
         
