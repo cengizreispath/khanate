@@ -18,7 +18,7 @@ build/
 
 # Logs
 *.log
-logs/
+/logs/
 tmp/
 
 # IDE
