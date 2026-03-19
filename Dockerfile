@@ -36,12 +36,12 @@ COPY --from=dashboard-builder /app/public ./public
 COPY --from=dashboard-builder /app/.next/standalone ./
 COPY --from=dashboard-builder /app/.next/static ./.next/static
 
-# Copy default templates
-COPY templates /app/templates
-
 # Create data directories with proper permissions
 RUN mkdir -p /data/worlds /data/registry /data/templates && \
     chmod -R 777 /data
+
+# Copy default templates to data dir
+COPY templates /data/templates
 
 # Environment
 ENV PORT=3000
