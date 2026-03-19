@@ -3,14 +3,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - "3002:3000"
     environment:
       - KHANATE_TOKEN=${KHANATE_TOKEN:-khan-2026-secret}
       - NODE_ENV=production
-    volumes:
-      - ./worlds:/app/worlds:ro
-      - ./registry:/app/registry:ro
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
