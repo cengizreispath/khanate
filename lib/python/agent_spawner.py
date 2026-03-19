@@ -264,7 +264,33 @@ created: {datetime.now().isoformat()}
 
     def spawn(self, world_id: str, env_id: str, project_id: str, agent_id: str, 
               task: str = None, template: str = None) -> Dict:
-        """Spawn an agent instance"""
+        """Spawn an agent instance (or send to existing session)"""
+        
+        # Check if agent already has an active session
+        key = f"{world_id}/{env_id}/{project_id}/{agent_id}"
+        existing = self.registry.get(key)
+        
+        if existing and existing.session_key and existing.status in ["idle", "busy", "running"]:
+            # Agent already running - send task to existing session instead
+            if task:
+                send_result = self._send_to_session(existing.session_key, task)
+                if send_result.get("success"):
+                    self.registry.update_status(key, AgentStatus.BUSY)
+                    return {
+                        "success": True,
+                        "action": "sent_to_existing",
+                        "key": key,
+                        "session_key": existing.session_key,
+                        "clawdbot_result": send_result
+                    }
+            else:
+                return {
+                    "success": True,
+                    "action": "already_running",
+                    "key": key,
+                    "session_key": existing.session_key,
+                    "message": "Agent already running, no task provided"
+                }
         
         # Load config (or create from template)
         config = self.load_agent_config(world_id, env_id, project_id, agent_id)
@@ -413,6 +439,64 @@ created: {datetime.now().isoformat()}
             
             # Cleanup temp file
             os.unlink(task_file)
+            
+            if result.returncode != 0:
+                return {
+                    "success": False,
+                    "error": f"Clawdbot failed: {result.stderr or result.stdout}"
+                }
+            
+            # Parse JSON response
+            try:
+                response = json.loads(result.stdout)
+                return {
+                    "success": True,
+                    "response": response
+                }
+            except json.JSONDecodeError:
+                return {
+                    "success": True,
+                    "response": result.stdout
+                }
+                
+        except subprocess.TimeoutExpired:
+            return {
+                "success": False,
+                "error": "Clawdbot command timed out"
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _send_to_session(self, session_key: str, message: str) -> Dict:
+        """Send a message to an existing agent session via Clawdbot CLI"""
+        import tempfile
+        
+        try:
+            # Write message to temp file to avoid shell escaping issues
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
+                f.write(message)
+                msg_file = f.name
+            
+            # Use clawdbot agent to send to existing session
+            cmd = [
+                "clawdbot", "agent",
+                "--session-id", session_key,
+                "--message", f"@{msg_file}",
+                "--json"
+            ]
+            
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=60  # Longer timeout for task execution
+            )
+            
+            # Cleanup temp file
+            os.unlink(msg_file)
             
             if result.returncode != 0:
                 return {
