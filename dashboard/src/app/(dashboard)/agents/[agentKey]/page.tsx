@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { MarkdownEditor } from '@/components/MarkdownEditor';
 import { MemoryBrowser } from '@/components/MemoryBrowser';
+import { AgentChat } from '@/components/AgentChat';
 
 interface AgentInstance {
   id: string;
@@ -265,13 +266,23 @@ export default function AgentDetailPage() {
       )}
 
       {/* Tabs */}
-      <Tabs defaultValue="overview">
-        <TabsList>
+      <Tabs defaultValue="chat">
+        <TabsList className="flex-wrap">
+          <TabsTrigger value="chat">Chat</TabsTrigger>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="logs">Logs ({logs.length})</TabsTrigger>
           <TabsTrigger value="content">AGENT.md</TabsTrigger>
           <TabsTrigger value="memory">Memory</TabsTrigger>
         </TabsList>
+
+        {/* Chat Tab */}
+        <TabsContent value="chat">
+          <AgentChat 
+            agentKey={agentKey} 
+            agentName={String(agent?.config?.metadata?.name || agentId)}
+            isRunning={isRunning}
+          />
+        </TabsContent>
 
         {/* Overview Tab */}
         <TabsContent value="overview">
