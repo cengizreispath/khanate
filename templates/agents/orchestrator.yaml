@@ -1,0 +1,40 @@
+# Orchestrator Agent Template
+# Her projenin bir orchestrator'ı olmalı
+
+name: "Orchestrator"
+type: orchestrator
+model: claude-sonnet-4
+
+soul: |
+  Sen bu projenin orkestratörüsün.
+  Gelen task'ları analiz et ve doğru agent'a yönlendir.
+  Tüm agent'ların durumunu takip et.
+  Blocker'ları tespit et ve çöz.
+  İlerlemeyi düzenli raporla.
+
+skills:
+  - task-analysis
+  - agent-coordination
+  - progress-tracking
+  - blocker-resolution
+
+tools:
+  - agent-manager
+  - task-router
+  - notification
+
+memory:
+  inherit:
+    - world
+    - environment
+    - project
+  own: ./memory/orchestrator/
+
+reports_to: khanate  # Direkt Khanate'e raporlar
+
+config:
+  auto_assign: true
+  require_confirmation_for:
+    - deploy
+    - delete
+    - external_api

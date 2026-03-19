@@ -1,0 +1,48 @@
+# Bugfix Workflow
+# Bug düzeltme akışı
+
+name: Bugfix
+description: Bug tespiti → fix → test → deploy
+
+triggers:
+  - manual
+  - sentry_alert
+  - bug_report
+
+steps:
+  - name: investigate
+    agent: developer
+    action: investigate_bug
+    input: "{{bug.description}}"
+    output: root_cause
+
+  - name: fix
+    agent: developer
+    action: implement_fix
+    input: "{{root_cause}}"
+    output: fix_code
+
+  - name: test_fix
+    agent: qa
+    action: verify_fix
+    input: 
+      fix: "{{fix_code}}"
+      original_bug: "{{bug}}"
+    output: fix_verified
+
+  - name: regression
+    agent: qa
+    action: regression_test
+    input: "{{fix_code}}"
+    output: regression_result
+
+  - name: deploy
+    agent: deployer
+    action: hotfix_deploy
+    input: "{{fix_code}}"
+    requires_approval: "{{bug.severity != 'critical'}}"
+    output: deployment_result
+
+on_complete:
+  - close_bug_ticket: true
+  - notify: reporter

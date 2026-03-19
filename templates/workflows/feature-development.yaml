@@ -1,0 +1,67 @@
+# Feature Development Workflow
+# Yeni bir feature geliştirme akışı
+
+name: Feature Development
+description: Yeni bir feature'ın analiz → geliştirme → test → deploy döngüsü
+
+triggers:
+  - manual
+  - github_issue
+  - task_assignment
+
+steps:
+  - name: analyze
+    agent: orchestrator
+    action: analyze_requirement
+    input: "{{task.description}}"
+    output: requirement_doc
+
+  - name: design
+    agent: orchestrator
+    action: create_task_breakdown
+    input: "{{requirement_doc}}"
+    output: task_list
+    requires_approval: true
+
+  - name: develop
+    agent: developer
+    action: implement_tasks
+    input: "{{task_list}}"
+    output: code_changes
+    parallel: false  # Sırayla yap
+
+  - name: review
+    agent: developer  # Farklı developer veya self-review
+    action: code_review
+    input: "{{code_changes}}"
+    output: review_result
+
+  - name: test
+    agent: qa
+    action: run_tests
+    input: "{{code_changes}}"
+    output: test_results
+    on_failure: notify_and_block
+
+  - name: deploy
+    agent: deployer
+    action: deploy_to_staging
+    input: "{{code_changes}}"
+    requires_approval: true
+    output: deployment_result
+
+  - name: verify
+    agent: qa
+    action: smoke_test
+    input: "{{deployment_result.url}}"
+    output: verification_result
+
+on_complete:
+  - notify: orchestrator
+  - notify: khanate
+  - update_task_status: completed
+
+on_failure:
+  - notify: orchestrator
+  - notify: khanate
+  - create_incident_report: true

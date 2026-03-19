@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Build
+.next/
+dist/
+build/
+*.egg-info/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+tmp/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+*.pem
+*.key
+.secrets/
+
+# Runtime
+*.pid
+*.sock
+
+# Memory files (keep structure, ignore content)
+memory/*.md
+!memory/.gitkeep
+registry/*.json
+!registry/.gitkeep
+worlds/*/memory/*.md
