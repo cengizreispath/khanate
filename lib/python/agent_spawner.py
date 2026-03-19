@@ -191,14 +191,63 @@ Her zaman rol ve projeye uygun davran.
 """
         return prompt
     
+    def create_agent_from_template(self, world_id: str, env_id: str, project_id: str, 
+                                     agent_id: str, template_name: str) -> Dict:
+        """Create an agent from template"""
+        import shutil
+        
+        template_path = KHANATE_DIR / "templates" / "agents" / f"{template_name}.yaml"
+        if not template_path.exists():
+            return {"success": False, "error": f"Template '{template_name}' not found"}
+        
+        # Read template
+        with open(template_path) as f:
+            template = yaml.safe_load(f)
+        
+        # Create agent directory
+        agent_path = WORLDS_DIR / world_id / "environments" / env_id / "projects" / project_id / "agents" / agent_id
+        agent_path.mkdir(parents=True, exist_ok=True)
+        (agent_path / "memory").mkdir(exist_ok=True)
+        
+        # Create AGENT.md
+        agent_md = f"""---
+type: agent
+id: {agent_id}
+name: {template.get('name', agent_id)}
+role: {template.get('type', 'agent')}
+model: {template.get('model', 'claude-sonnet-4')}
+skills: {template.get('skills', [])}
+created: {datetime.now().isoformat()}
+---
+
+# Agent: {template.get('name', agent_id)}
+
+## Soul
+{template.get('soul', 'AI assistant')}
+
+## Skills
+{', '.join(template.get('skills', []))}
+"""
+        (agent_path / "AGENT.md").write_text(agent_md)
+        
+        return {"success": True, "path": str(agent_path), "agent_id": agent_id}
+
     def spawn(self, world_id: str, env_id: str, project_id: str, agent_id: str, 
-              task: str = None) -> Dict:
+              task: str = None, template: str = None) -> Dict:
         """Spawn an agent instance"""
         
-        # Load config
+        # Load config (or create from template)
         config = self.load_agent_config(world_id, env_id, project_id, agent_id)
         if not config:
-            return {"success": False, "error": "Agent config not found"}
+            if template:
+                # Create agent from template
+                result = self.create_agent_from_template(world_id, env_id, project_id, agent_id, template)
+                if not result["success"]:
+                    return result
+                config = self.load_agent_config(world_id, env_id, project_id, agent_id)
+            
+            if not config:
+                return {"success": False, "error": "Agent config not found. Provide a template."}
         
         metadata = config["metadata"]
         

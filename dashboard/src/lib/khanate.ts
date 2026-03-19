@@ -46,7 +46,11 @@ export const khanateProjectGet = (worldId: string, envId: string, projectId: str
 
 export const khanateAgentList = () => khanate('agent list');
 export const khanateAgentStatus = () => khanate('agent status');
-export const khanateAgentSpawn = (worldId: string, envId: string, projectId: string, agentId: string, task?: string) =>
-  khanate(`agent spawn ${worldId} ${envId} ${projectId} ${agentId}${task ? ` "${task}"` : ''}`);
+export const khanateAgentSpawn = (worldId: string, envId: string, projectId: string, agentId: string, task?: string, template?: string) => {
+  let cmd = `agent spawn ${worldId} ${envId} ${projectId} ${agentId}`;
+  if (template) cmd += ` --template=${template}`;
+  if (task) cmd += ` --task="${task}"`;
+  return khanate(cmd);
+};
 export const khanateAgentStop = (worldId: string, envId: string, projectId: string, agentId: string) =>
   khanate(`agent stop ${worldId} ${envId} ${projectId} ${agentId}`);

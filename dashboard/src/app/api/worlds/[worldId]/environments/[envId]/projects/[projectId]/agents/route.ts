@@ -13,6 +13,8 @@ export async function POST(
     return NextResponse.json({ success: false, error: 'template required' }, { status: 400 });
   }
   
-  const result = await khanateAgentSpawn(worldId, envId, projectId, template, task);
+  // Use template name as agent_id, pass template for creation
+  const agentId = template;
+  const result = await khanateAgentSpawn(worldId, envId, projectId, agentId, task, template);
   return NextResponse.json(result);
 }

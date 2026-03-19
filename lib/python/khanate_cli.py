@@ -212,8 +212,18 @@ def handle_command(cmd, args, memory, spawner):
         
         if subcmd == "spawn" and len(args) >= 5:
             world_id, env_id, project_id, agent_id = args[1:5]
-            task = args[5] if len(args) > 5 else None
-            result = spawner.spawn(world_id, env_id, project_id, agent_id, task)
+            task = None
+            template = None
+            # Parse remaining args
+            for i, arg in enumerate(args[5:], 5):
+                if arg.startswith("--template="):
+                    template = arg.split("=", 1)[1]
+                elif arg.startswith("--task="):
+                    task = arg.split("=", 1)[1]
+                elif i == 5 and not arg.startswith("--"):
+                    # Legacy: 6th arg is task
+                    task = arg
+            result = spawner.spawn(world_id, env_id, project_id, agent_id, task=task, template=template)
             return result  # Already formatted
         
         if subcmd == "stop" and len(args) >= 5:
