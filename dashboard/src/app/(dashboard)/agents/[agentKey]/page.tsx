@@ -161,7 +161,7 @@ export default function AgentDetailPage() {
           <div className="flex-1">
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-white">
-                {agent?.config?.metadata?.name || agentId}
+                {String(agent?.config?.metadata?.name || agentId)}
               </h1>
               <span className={`px-2.5 py-1 rounded-md text-xs font-medium ${
                 isRunning
@@ -273,11 +273,11 @@ export default function AgentDetailPage() {
               <CardContent className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-zinc-500">Role</span>
-                  <span className="text-zinc-300">{agent?.config?.metadata?.role || instance?.role || '-'}</span>
+                  <span className="text-zinc-300">{String(agent?.config?.metadata?.role || instance?.role || '-')}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-zinc-500">Model</span>
-                  <span className="text-zinc-300">{agent?.config?.metadata?.model || instance?.model || '-'}</span>
+                  <span className="text-zinc-300">{String(agent?.config?.metadata?.model || instance?.model || '-')}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-zinc-500">Skills</span>
