@@ -59,8 +59,8 @@ async function khanateHttp(path: string, method: 'GET' | 'POST' = 'GET', body?: 
   }
 }
 
-// Template operations
-export const khanateTemplateList = () => khanate('template list');
+// Template operations - HTTP based (CLI not available in container)
+export const khanateTemplateList = () => khanateHttp('/templates');
 
 // Convenience functions - CLI based (local operations)
 export const khanateStatus = () => khanate('status');

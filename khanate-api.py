@@ -44,6 +44,11 @@ class KhanateHandler(BaseHTTPRequestHandler):
             self._send_json(result)
             return
         
+        if path == "/templates":
+            result = self._run_khanate(["template", "list"])
+            self._send_json(result)
+            return
+        
         if path == "/agents":
             result = self._run_khanate(["agent", "list"])
             self._send_json(result)
