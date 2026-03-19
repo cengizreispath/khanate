@@ -86,14 +86,39 @@ export default function AgentDetailPage() {
   }, [agentKey]);
 
   useEffect(() => {
+    // Initial fetch
     fetchAgent();
     fetchLogs();
-    const interval = setInterval(() => {
-      fetchAgent();
-      fetchLogs();
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [fetchAgent, fetchLogs]);
+    
+    // Setup SSE connection for real-time updates
+    const eventSource = new EventSource(`/api/agents/${encodeURIComponent(agentKey)}/stream`);
+    
+    eventSource.addEventListener('log', (event) => {
+      const newLog = JSON.parse(event.data);
+      setLogs(prev => {
+        // Avoid duplicates
+        if (prev.some(l => l.id === newLog.id)) return prev;
+        return [...prev, newLog];
+      });
+    });
+    
+    eventSource.addEventListener('status', (event) => {
+      const agentData = JSON.parse(event.data);
+      setAgent(prev => prev ? { ...prev, instance: agentData } : prev);
+    });
+    
+    eventSource.addEventListener('connected', () => {
+      console.log('SSE connected');
+    });
+    
+    eventSource.onerror = () => {
+      console.log('SSE error, reconnecting...');
+    };
+    
+    return () => {
+      eventSource.close();
+    };
+  }, [agentKey, fetchAgent, fetchLogs]);
 
   const handleSendTask = async () => {
     if (!task.trim()) return;
