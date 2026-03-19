@@ -54,6 +54,23 @@ class KhanateHandler(BaseHTTPRequestHandler):
             self._send_json(result)
             return
         
+        # GET /agent/logs?worldId=...&envId=...&projectId=...&agentId=...&limit=50
+        if path == "/agent/logs":
+            query = parse_qs(parsed.query)
+            world_id = query.get("worldId", [None])[0]
+            env_id = query.get("envId", [None])[0]
+            project_id = query.get("projectId", [None])[0]
+            agent_id = query.get("agentId", [None])[0]
+            limit = query.get("limit", ["50"])[0]
+            
+            if not all([world_id, env_id, project_id, agent_id]):
+                self._send_json({"error": "Missing required query params"}, 400)
+                return
+            
+            result = self._run_khanate(["agent", "logs", world_id, env_id, project_id, agent_id, limit])
+            self._send_json(result)
+            return
+        
         self._send_json({"error": "Not found"}, 404)
     
     def do_POST(self):

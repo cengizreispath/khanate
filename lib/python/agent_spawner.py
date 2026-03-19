@@ -276,6 +276,11 @@ created: {datetime.now().isoformat()}
                 send_result = self._send_to_session(existing.session_key, task)
                 if send_result.get("success"):
                     self.registry.update_status(key, AgentStatus.BUSY)
+                    # Log the interaction
+                    self._write_log(world_id, env_id, project_id, agent_id, "user", task)
+                    response_text = self._extract_response_text(send_result)
+                    if response_text:
+                        self._write_log(world_id, env_id, project_id, agent_id, "assistant", response_text)
                     return {
                         "success": True,
                         "action": "sent_to_existing",
@@ -359,6 +364,13 @@ created: {datetime.now().isoformat()}
         self.registry.register(instance)
         self.registry.update_status(key, AgentStatus.IDLE)  # Agent hazır, iş bekliyor
         
+        # Log the interaction
+        if task:
+            self._write_log(world_id, env_id, project_id, agent_id, "user", task)
+        response_text = self._extract_response_text(spawn_result)
+        if response_text:
+            self._write_log(world_id, env_id, project_id, agent_id, "assistant", response_text)
+        
         return {
             "success": True,
             "key": key,
@@ -366,6 +378,55 @@ created: {datetime.now().isoformat()}
             "session_key": session_key,
             "clawdbot_result": spawn_result
         }
+    
+    def _write_log(self, world_id: str, env_id: str, project_id: str, agent_id: str, 
+                   role: str, content: str) -> None:
+        """Write a log entry to the agent's log file"""
+        import uuid
+        
+        log_dir = WORLDS_DIR / world_id / "environments" / env_id / "projects" / project_id / "agents" / agent_id
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_file = log_dir / "logs.jsonl"
+        
+        entry = {
+            "id": uuid.uuid4().hex[:8],
+            "timestamp": datetime.now().isoformat(),
+            "role": role,
+            "content": content
+        }
+        
+        with open(log_file, "a") as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    
+    def _extract_response_text(self, result: Dict) -> Optional[str]:
+        """Extract the response text from a clawdbot result"""
+        try:
+            payloads = result.get("response", {}).get("result", {}).get("payloads", [])
+            if payloads and payloads[0].get("text"):
+                return payloads[0]["text"]
+        except:
+            pass
+        return None
+    
+    def get_logs(self, world_id: str, env_id: str, project_id: str, agent_id: str, 
+                 limit: int = 50) -> List[Dict]:
+        """Get recent logs for an agent"""
+        log_file = WORLDS_DIR / world_id / "environments" / env_id / "projects" / project_id / "agents" / agent_id / "logs.jsonl"
+        
+        if not log_file.exists():
+            return []
+        
+        logs = []
+        with open(log_file, "r") as f:
+            for line in f:
+                if line.strip():
+                    try:
+                        logs.append(json.loads(line))
+                    except:
+                        pass
+        
+        # Return last N logs
+        return logs[-limit:]
     
     def _register_clawdbot_session(self, session_key: str, world_id: str, env_id: str, 
                                       project_id: str, agent_id: str) -> bool:

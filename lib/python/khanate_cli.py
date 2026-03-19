@@ -375,6 +375,13 @@ def handle_command(cmd, args, memory, spawner):
             registry = spawner.registry.get_project_registry(world_id, env_id, project_id)
             return success(data={"agents": registry, "project": project_id})
         
+        if subcmd == "logs" and len(args) >= 5:
+            # Get logs for an agent
+            world_id, env_id, project_id, agent_id = args[1:5]
+            limit = int(args[5]) if len(args) > 5 else 50
+            logs = spawner.get_logs(world_id, env_id, project_id, agent_id, limit)
+            return success(data={"logs": logs, "count": len(logs)})
+        
         return error(f"Unknown agent subcommand: {subcmd}")
     
     # ============ CONTENT ============
