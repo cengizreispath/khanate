@@ -283,9 +283,12 @@ export default function ProjectDetailPage() {
                   {project.agents.map((agent) => (
                     <div
                       key={agent.id}
-                      className="flex items-center justify-between p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg"
+                      className="flex items-center justify-between p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg hover:border-zinc-700 transition-colors"
                     >
-                      <div className="flex items-center gap-4">
+                      <Link 
+                        href={`/agents/${encodeURIComponent(`${worldId}/${envId}/${projectId}/${agent.id}`)}`}
+                        className="flex items-center gap-4 flex-1"
+                      >
                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                           agent.status === 'running' 
                             ? 'bg-green-500/10 border border-green-500/20' 
@@ -297,7 +300,7 @@ export default function ProjectDetailPage() {
                           <p className="font-medium text-white">{agent.name || agent.id}</p>
                           <p className="text-sm text-zinc-500">{agent.role}</p>
                         </div>
-                      </div>
+                      </Link>
                       <div className="flex items-center gap-4">
                         <span className={`px-2.5 py-1 rounded-md text-xs font-medium ${
                           agent.status === 'running'
@@ -307,7 +310,7 @@ export default function ProjectDetailPage() {
                           {agent.status}
                         </span>
                         {agent.status === 'running' && (
-                          <Button variant="destructive" size="sm" onClick={() => handleStopAgent(agent.id)}>
+                          <Button variant="destructive" size="sm" onClick={(e) => { e.preventDefault(); handleStopAgent(agent.id); }}>
                             <Square className="w-3 h-3 mr-1" />
                             Stop
                           </Button>
