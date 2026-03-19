@@ -26,7 +26,9 @@ WORLDS_DIR = KHANATE_DIR / "worlds"
 class AgentStatus(Enum):
     STOPPED = "stopped"
     STARTING = "starting"
-    RUNNING = "running"
+    IDLE = "idle"        # Çalışıyor ama iş bekliyor
+    BUSY = "busy"        # Aktif olarak çalışıyor
+    RUNNING = "running"  # Eski uyumluluk için
     ERROR = "error"
 
 
@@ -107,14 +109,42 @@ class AgentRegistry:
         prefix = f"{world_id}/{env_id}/{project_id}/"
         return [a for a in self.agents.values() if f"{a.world_id}/{a.env_id}/{a.project_id}/" == prefix]
     
+    def get_project_registry(self, world_id: str, env_id: str, project_id: str) -> Dict:
+        """Get a simplified registry for orchestrator use"""
+        agents = self.list_by_project(world_id, env_id, project_id)
+        return {
+            a.agent_id: {
+                "session_key": a.session_key,
+                "status": a.status,
+                "role": a.role,
+                "name": a.name,
+                "last_activity": a.last_activity
+            }
+            for a in agents
+        }
+    
+    def write_project_registry(self, world_id: str, env_id: str, project_id: str):
+        """Write project-level agents.json for orchestrator access"""
+        project_path = WORLDS_DIR / world_id / "environments" / env_id / "projects" / project_id
+        registry_file = project_path / "agents-registry.json"
+        
+        registry = self.get_project_registry(world_id, env_id, project_id)
+        registry_file.write_text(json.dumps({
+            "updated_at": datetime.now().isoformat(),
+            "agents": registry
+        }, indent=2))
+    
     def update_status(self, key: str, status: AgentStatus, error: str = None):
         if key in self.agents:
-            self.agents[key].status = status.value
-            self.agents[key].error = error
-            if status == AgentStatus.RUNNING:
-                self.agents[key].started_at = datetime.now().isoformat()
-            self.agents[key].last_activity = datetime.now().isoformat()
+            agent = self.agents[key]
+            agent.status = status.value
+            agent.error = error
+            if status in [AgentStatus.RUNNING, AgentStatus.IDLE]:
+                agent.started_at = datetime.now().isoformat()
+            agent.last_activity = datetime.now().isoformat()
             self._save()
+            # Update project-level registry
+            self.write_project_registry(agent.world_id, agent.env_id, agent.project_id)
     
     def remove(self, key: str):
         if key in self.agents:
@@ -298,7 +328,7 @@ created: {datetime.now().isoformat()}
         instance.session_key = session_key
         instance.started_at = datetime.now().isoformat()
         self.registry.register(instance)
-        self.registry.update_status(key, AgentStatus.RUNNING)
+        self.registry.update_status(key, AgentStatus.IDLE)  # Agent hazır, iş bekliyor
         
         return {
             "success": True,

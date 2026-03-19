@@ -107,6 +107,49 @@ class KhanateHandler(BaseHTTPRequestHandler):
             self._send_json(result)
             return
         
+        if path == "/agent/send":
+            session_key = data.get("sessionKey")
+            message = data.get("message")
+            
+            if not session_key or not message:
+                self._send_json({"error": "sessionKey and message required"}, 400)
+                return
+            
+            cmd = ["agent", "send", session_key, message]
+            result = self._run_khanate(cmd)
+            self._send_json(result)
+            return
+        
+        if path == "/agent/set-status":
+            world_id = data.get("worldId")
+            env_id = data.get("envId")
+            project_id = data.get("projectId")
+            agent_id = data.get("agentId")
+            status = data.get("status")
+            
+            if not all([world_id, env_id, project_id, agent_id, status]):
+                self._send_json({"error": "Missing required fields"}, 400)
+                return
+            
+            cmd = ["agent", "set-status", world_id, env_id, project_id, agent_id, status]
+            result = self._run_khanate(cmd)
+            self._send_json(result)
+            return
+        
+        if path == "/agent/project-registry":
+            world_id = data.get("worldId")
+            env_id = data.get("envId")
+            project_id = data.get("projectId")
+            
+            if not all([world_id, env_id, project_id]):
+                self._send_json({"error": "Missing required fields"}, 400)
+                return
+            
+            cmd = ["agent", "project-registry", world_id, env_id, project_id]
+            result = self._run_khanate(cmd)
+            self._send_json(result)
+            return
+        
         self._send_json({"error": "Not found"}, 404)
     
     def _run_khanate(self, args):

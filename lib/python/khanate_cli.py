@@ -62,6 +62,44 @@ def error(message):
     return {"success": False, "error": message}
 
 
+def _send_to_agent(session_key: str, message: str) -> dict:
+    """Send a message to an agent via clawdbot agent command"""
+    import subprocess
+    import tempfile
+    
+    try:
+        # Write message to temp file to avoid shell escaping
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
+            f.write(message)
+            msg_file = f.name
+        
+        cmd = [
+            "clawdbot", "agent",
+            "--session-id", session_key,
+            "--message", f"@{msg_file}",
+            "--json"
+        ]
+        
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        
+        import os
+        os.unlink(msg_file)
+        
+        if result.returncode != 0:
+            return error(f"Failed to send: {result.stderr or result.stdout}")
+        
+        try:
+            response = json.loads(result.stdout)
+            return success(data=response, message="Message sent")
+        except json.JSONDecodeError:
+            return success(data={"raw": result.stdout}, message="Message sent")
+            
+    except subprocess.TimeoutExpired:
+        return error("Command timed out")
+    except Exception as e:
+        return error(str(e))
+
+
 def main():
     if len(sys.argv) < 2:
         print(json.dumps(error("No command provided. Use: khanate_cli.py <command> [args]")))
@@ -311,6 +349,31 @@ def handle_command(cmd, args, memory, spawner):
             else:
                 result = spawner.status()
             return result
+        
+        if subcmd == "send" and len(args) >= 3:
+            # Send message to agent via sessions_send
+            session_key = args[1]
+            message = " ".join(args[2:])
+            result = _send_to_agent(session_key, message)
+            return result
+        
+        if subcmd == "set-status" and len(args) >= 6:
+            # Update agent status (idle, busy, etc)
+            world_id, env_id, project_id, agent_id, new_status = args[1:6]
+            key = f"{world_id}/{env_id}/{project_id}/{agent_id}"
+            from agent_spawner import AgentStatus
+            try:
+                status_enum = AgentStatus(new_status)
+                spawner.registry.update_status(key, status_enum)
+                return success(message=f"Status updated to {new_status}")
+            except ValueError:
+                return error(f"Invalid status: {new_status}. Valid: stopped, idle, busy, error")
+        
+        if subcmd == "project-registry" and len(args) >= 4:
+            # Get simplified registry for orchestrator
+            world_id, env_id, project_id = args[1:4]
+            registry = spawner.registry.get_project_registry(world_id, env_id, project_id)
+            return success(data={"agents": registry, "project": project_id})
         
         return error(f"Unknown agent subcommand: {subcmd}")
     
