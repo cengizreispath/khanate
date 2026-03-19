@@ -191,7 +191,22 @@ def handle_command(cmd, args, memory, spawner):
         if subcmd == "list":
             if len(args) >= 4:
                 world_id, env_id, project_id = args[1], args[2], args[3]
-                agents = memory.list_agents(world_id, env_id, project_id)
+                agent_ids = memory.list_agents(world_id, env_id, project_id)
+                # Get full details for each agent
+                agents = []
+                for agent_id in agent_ids:
+                    agent_data = memory.get_agent(world_id, env_id, project_id, agent_id)
+                    if agent_data:
+                        # Check registry for status
+                        key = f"{world_id}/{env_id}/{project_id}/{agent_id}"
+                        registry_entry = spawner.registry.get(key)
+                        agents.append({
+                            "id": agent_id,
+                            "name": agent_data.get("metadata", {}).get("name", agent_id),
+                            "role": agent_data.get("metadata", {}).get("role", "agent"),
+                            "status": registry_entry.status if registry_entry else "stopped",
+                            "model": agent_data.get("metadata", {}).get("model", "claude-sonnet-4")
+                        })
                 return success(data={"agents": agents, "project": project_id})
             else:
                 result = spawner.status()
