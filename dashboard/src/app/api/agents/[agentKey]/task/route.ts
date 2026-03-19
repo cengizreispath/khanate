@@ -15,21 +15,23 @@ export async function POST(
   
   try {
     const body = await request.json();
-    const { task, sessionKey } = body;
+    const { task } = body;
     
     if (!task) {
       return NextResponse.json({ success: false, error: 'task required' }, { status: 400 });
     }
     
-    if (!sessionKey) {
-      return NextResponse.json({ success: false, error: 'sessionKey required' }, { status: 400 });
-    }
-    
-    // Send task to agent via khanate API
-    const res = await fetch(`${KHANATE_API_URL}/agent/send`, {
+    // Use spawn endpoint - it handles existing sessions and writes logs
+    const res = await fetch(`${KHANATE_API_URL}/agent/spawn`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionKey, message: task }),
+      body: JSON.stringify({ 
+        worldId, 
+        envId, 
+        projectId, 
+        agentId,
+        task 
+      }),
     });
     
     const result = await res.json();

@@ -125,33 +125,14 @@ export default function AgentDetailPage() {
     
     setSendingTask(true);
     try {
-      // If no active session, spawn first then send task
-      if (!agent?.instance?.session_key) {
-        const spawnRes = await fetch(`/api/agents/${encodeURIComponent(agentKey)}/spawn`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ task }),
-        });
-        const spawnData = await spawnRes.json();
-        if (spawnData.success) {
-          setShowSendTask(false);
-          setTask('');
-          fetchAgent();
-          fetchLogs();
-        } else {
-          alert(spawnData.error || 'Failed to spawn agent');
-        }
-        return;
-      }
-      
-      // Session exists, send task directly
+      // Task endpoint now uses spawn which handles everything:
+      // - Creates session if needed
+      // - Sends to existing session if available
+      // - Writes logs
       const res = await fetch(`/api/agents/${encodeURIComponent(agentKey)}/task`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          task, 
-          sessionKey: agent.instance.session_key 
-        }),
+        body: JSON.stringify({ task }),
       });
       const data = await res.json();
       if (data.success) {
