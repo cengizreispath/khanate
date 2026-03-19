@@ -276,6 +276,8 @@ status: stopped
             if len(parts) >= 3:
                 try:
                     metadata = yaml.safe_load(parts[1])
+                    # Convert datetime objects to strings for JSON serialization
+                    metadata = self._serialize_metadata(metadata)
                 except:
                     pass
                 content = parts[2].strip()
@@ -286,6 +288,18 @@ status: stopped
             "metadata": metadata,
             "content": content
         }
+    
+    def _serialize_metadata(self, data: Any) -> Any:
+        """Convert datetime objects to ISO strings for JSON serialization"""
+        if isinstance(data, dict):
+            return {k: self._serialize_metadata(v) for k, v in data.items()}
+        elif isinstance(data, list):
+            return [self._serialize_metadata(v) for v in data]
+        elif isinstance(data, (datetime,)):
+            return data.isoformat()
+        elif hasattr(data, 'isoformat'):  # date objects
+            return data.isoformat()
+        return data
     
     def _read_recent_memories(self, memory_dir: Path, days: int = 3) -> str:
         """Read recent memory files"""
