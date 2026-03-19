@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
-  Bot, ArrowLeft, Play, Square, RefreshCw, 
+  Bot, ArrowLeft, Square, RefreshCw, 
   MessageSquare, Cpu, Zap, AlertCircle, CheckCircle, Send
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -54,11 +54,9 @@ export default function AgentDetailPage() {
   const [agent, setAgent] = useState<AgentDetails | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [spawning, setSpawning] = useState(false);
   const [stopping, setStopping] = useState(false);
   const [sendingTask, setSendingTask] = useState(false);
   const [task, setTask] = useState('');
-  const [showTaskInput, setShowTaskInput] = useState(false);
   const [showSendTask, setShowSendTask] = useState(false);
 
   const fetchAgent = useCallback(async () => {
@@ -97,35 +95,31 @@ export default function AgentDetailPage() {
     return () => clearInterval(interval);
   }, [fetchAgent, fetchLogs]);
 
-  const handleSpawn = async () => {
-    setSpawning(true);
-    try {
-      const res = await fetch(`/api/agents/${encodeURIComponent(agentKey)}/spawn`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ task }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setShowTaskInput(false);
-        setTask('');
-        fetchAgent();
-        fetchLogs();
-      } else {
-        alert(data.error || 'Failed to spawn agent');
-      }
-    } catch (error) {
-      console.error('Failed to spawn:', error);
-    } finally {
-      setSpawning(false);
-    }
-  };
-
   const handleSendTask = async () => {
-    if (!task.trim() || !agent?.instance?.session_key) return;
+    if (!task.trim()) return;
     
     setSendingTask(true);
     try {
+      // If no active session, spawn first then send task
+      if (!agent?.instance?.session_key) {
+        const spawnRes = await fetch(`/api/agents/${encodeURIComponent(agentKey)}/spawn`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ task }),
+        });
+        const spawnData = await spawnRes.json();
+        if (spawnData.success) {
+          setShowSendTask(false);
+          setTask('');
+          fetchAgent();
+          fetchLogs();
+        } else {
+          alert(spawnData.error || 'Failed to spawn agent');
+        }
+        return;
+      }
+      
+      // Session exists, send task directly
       const res = await fetch(`/api/agents/${encodeURIComponent(agentKey)}/task`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -240,21 +234,14 @@ export default function AgentDetailPage() {
             <Button variant="ghost" size="icon" onClick={() => { fetchAgent(); fetchLogs(); }}>
               <RefreshCw className="w-5 h-5" />
             </Button>
-            {isRunning ? (
-              <>
-                <Button variant="outline" onClick={() => setShowSendTask(true)}>
-                  <Send className="w-4 h-4 mr-2" />
-                  Task Gönder
-                </Button>
-                <Button variant="destructive" onClick={handleStop} disabled={stopping}>
-                  <Square className="w-4 h-4 mr-2" />
-                  {stopping ? 'Stopping...' : 'Stop'}
-                </Button>
-              </>
-            ) : (
-              <Button onClick={() => setShowTaskInput(true)}>
-                <Play className="w-4 h-4 mr-2" />
-                Spawn
+            <Button onClick={() => setShowSendTask(true)}>
+              <Send className="w-4 h-4 mr-2" />
+              Task Gönder
+            </Button>
+            {isRunning && (
+              <Button variant="destructive" onClick={handleStop} disabled={stopping}>
+                <Square className="w-4 h-4 mr-2" />
+                {stopping ? 'Stopping...' : 'Stop'}
               </Button>
             )}
           </div>
@@ -458,48 +445,13 @@ export default function AgentDetailPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Spawn Modal */}
-      {showTaskInput && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <Card className="w-full max-w-md mx-4">
-            <CardHeader>
-              <CardTitle>Spawn Agent</CardTitle>
-              <CardDescription>Agent'ı başlat ve görev ver</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm text-zinc-400">Task (optional)</label>
-                  <textarea
-                    value={task}
-                    onChange={(e) => setTask(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
-                    placeholder="Agent'a ne yapmasını istiyorsun?"
-                    rows={4}
-                  />
-                </div>
-                <div className="flex gap-3 justify-end pt-4">
-                  <Button variant="ghost" onClick={() => { setShowTaskInput(false); setTask(''); }}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleSpawn} disabled={spawning}>
-                    <Play className="w-4 h-4 mr-2" />
-                    {spawning ? 'Spawning...' : 'Spawn'}
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
       {/* Send Task Modal */}
       {showSendTask && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
           <Card className="w-full max-w-lg mx-4">
             <CardHeader>
               <CardTitle>Task Gönder</CardTitle>
-              <CardDescription>Çalışan agent'a yeni görev gönder</CardDescription>
+              <CardDescription>Agent'a görev gönder {!isRunning && '(otomatik başlatılacak)'}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
