@@ -194,11 +194,12 @@ class AgentSpawner:
         
         # Get agent config
         config = self.load_agent_config(world_id, env_id, project_id, agent_id)
+        role = config['metadata'].get('role', 'assistant')
         
         prompt = f"""# AGENT SYSTEM PROMPT
 
 Sen "{config['metadata'].get('name', agent_id)}" adlı bir AI agent'sın.
-Rol: {config['metadata'].get('role', 'assistant')}
+Rol: {role}
 Proje: {project_id}
 
 ## Bağlam (Context)
@@ -219,6 +220,34 @@ Her zaman rol ve projeye uygun davran.
 - Başka projelerin verilerine erişme
 - Önemli kararları Orchestrator'a bildir
 """
+        
+        # For orchestrator role, add project agent registry
+        if role == 'orchestrator':
+            registry = self.registry.get_project_registry(world_id, env_id, project_id)
+            registry_str = json.dumps(registry, indent=2, ensure_ascii=False)
+            prompt += f"""
+## Proje Agent Registry
+
+Bu projede mevcut agent'lar ve session bilgileri:
+
+```json
+{registry_str}
+```
+
+### İş Delegasyonu
+
+Diğer agent'lara iş vermek için `sessions_send` tool'unu kullan:
+- session_key: Yukarıdaki registry'den al
+- message: Görevi açıkça tanımla
+
+Örnek:
+```
+sessions_send(sessionKey="khanate:...:analyst:xxx", message="Görev: Site analizi yap...")
+```
+
+Agent işini bitirdiğinde sana sessions_send ile cevap verecek.
+"""
+        
         return prompt
     
     def create_agent_from_template(self, world_id: str, env_id: str, project_id: str, 
