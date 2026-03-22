@@ -7,14 +7,14 @@ export async function POST(
 ) {
   const { worldId, envId, projectId } = await params;
   const body = await request.json();
-  const { template, task } = body;
+  const { template, task, agentName } = body;
   
   if (!template) {
     return NextResponse.json({ success: false, error: 'template required' }, { status: 400 });
   }
   
-  // Use template name as agent_id, pass template for creation
-  const agentId = template;
+  // Use custom agent name if provided, otherwise fall back to template name
+  const agentId = agentName?.trim() || template;
   const result = await khanateAgentSpawn(worldId, envId, projectId, agentId, task, template);
   return NextResponse.json(result);
 }

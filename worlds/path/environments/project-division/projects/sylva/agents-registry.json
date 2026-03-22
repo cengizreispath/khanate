@@ -1,0 +1,12 @@
+{
+  "updated_at": "2026-03-22T21:03:36.369814",
+  "agents": {
+    "manual": {
+      "session_key": "khanate:path:project-division:sylva:manual:98c36d14",
+      "status": "idle",
+      "role": "custom",
+      "name": "Manual",
+      "last_activity": "2026-03-22T21:03:36.368958"
+    }
+  }
+}

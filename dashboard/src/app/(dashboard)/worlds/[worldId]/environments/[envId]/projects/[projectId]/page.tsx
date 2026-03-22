@@ -48,6 +48,7 @@ export default function ProjectDetailPage() {
   const [loading, setLoading] = useState(true);
   const [showSpawn, setShowSpawn] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [agentName, setAgentName] = useState('');
   const [task, setTask] = useState('');
   const [spawning, setSpawning] = useState(false);
   const [spawnError, setSpawnError] = useState('');
@@ -101,12 +102,13 @@ export default function ProjectDetailPage() {
       const res = await fetch(`/api/worlds/${worldId}/environments/${envId}/projects/${projectId}/agents`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ template: selectedTemplate, task }),
+        body: JSON.stringify({ template: selectedTemplate, task, agentName }),
       });
       const data = await res.json();
       if (data.success) {
         setShowSpawn(false);
         setSelectedTemplate('');
+        setAgentName('');
         setTask('');
         fetchProject();
       } else {
@@ -371,6 +373,17 @@ export default function ProjectDetailPage() {
                     const desc = found && typeof found !== 'string' ? found.description : '';
                     return desc ? <p className="text-xs text-zinc-500 mt-1">{desc}</p> : null;
                   })()}
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-zinc-400">Agent Name (optional)</label>
+                  <input
+                    type="text"
+                    value={agentName}
+                    onChange={(e) => setAgentName(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    placeholder={selectedTemplate || 'e.g. backend-dev, ui-specialist...'}
+                  />
+                  <p className="text-xs text-zinc-500">Boş bırakırsan template adı kullanılır</p>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm text-zinc-400">Task (optional)</label>
