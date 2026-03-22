@@ -1,0 +1,13 @@
+---
+name: Manual
+role: custom
+model: claude-sonnet-4-5
+skills: []
+description: Boş bir başlangıç - kendi AGENTS.md'ni yaz
+---
+
+# Agent
+
+Bu agent boş bir template ile oluşturuldu. 
+
+Görevini ve davranışlarını kendin tanımla.
