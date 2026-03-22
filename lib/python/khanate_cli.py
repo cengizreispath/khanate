@@ -25,6 +25,7 @@ Commands:
     agent get <world_id> <env_id> <project_id> <agent_id>
     agent spawn <world_id> <env_id> <project_id> <agent_id> [task]
     agent stop <world_id> <env_id> <project_id> <agent_id>
+    agent delete <world_id> <env_id> <project_id> <agent_id>
     agent status
     
     # Memory
@@ -350,6 +351,19 @@ def handle_command(cmd, args, memory, spawner):
             world_id, env_id, project_id, agent_id = args[1:5]
             result = spawner.stop(world_id, env_id, project_id, agent_id)
             return result
+        
+        if subcmd == "delete" and len(args) >= 5:
+            world_id, env_id, project_id, agent_id = args[1:5]
+            # First stop the agent if running
+            spawner.stop(world_id, env_id, project_id, agent_id)
+            # Remove from registry
+            key = f"{world_id}/{env_id}/{project_id}/{agent_id}"
+            spawner.registry.remove(key)
+            # Delete agent directory
+            result = memory.delete_agent(world_id, env_id, project_id, agent_id)
+            if result.get("deleted"):
+                return success(data=result, message="Agent deleted")
+            return error(result.get("error", "Failed to delete agent"))
         
         if subcmd == "status":
             if len(args) >= 5:

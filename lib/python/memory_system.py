@@ -435,6 +435,17 @@ status: active
             return None
         return self._read_entity(agent_path, "AGENT.md")
     
+    def delete_agent(self, world_id: str, env_id: str, project_id: str, agent_id: str) -> Dict:
+        """Delete an agent and its directory"""
+        import shutil
+        agent_path = self.worlds_dir / world_id / "environments" / env_id / "projects" / project_id / "agents" / agent_id
+        
+        if not agent_path.exists():
+            return {"success": False, "error": "Agent not found"}
+        
+        shutil.rmtree(agent_path)
+        return {"id": agent_id, "deleted": True}
+    
     def create_agent(self, world_id: str, env_id: str, project_id: str, agent_id: str, 
                      name: str, role: str, model: str = "claude-sonnet-4-5", 
                      skills: List[str] = None, soul: str = "") -> Dict:

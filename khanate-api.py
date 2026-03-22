@@ -145,6 +145,21 @@ class KhanateHandler(BaseHTTPRequestHandler):
             self._send_json(result)
             return
         
+        if path == "/agent/delete":
+            world_id = data.get("worldId")
+            env_id = data.get("envId")
+            project_id = data.get("projectId")
+            agent_id = data.get("agentId")
+            
+            if not all([world_id, env_id, project_id, agent_id]):
+                self._send_json({"error": "Missing required fields"}, 400)
+                return
+            
+            cmd = ["agent", "delete", world_id, env_id, project_id, agent_id]
+            result = self._run_khanate(cmd)
+            self._send_json(result)
+            return
+        
         if path == "/agent/send":
             session_key = data.get("sessionKey")
             message = data.get("message")

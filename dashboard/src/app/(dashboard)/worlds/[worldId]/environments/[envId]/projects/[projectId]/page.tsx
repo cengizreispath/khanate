@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FolderKanban, Bot, Plus, ArrowLeft, Play, Square, RefreshCw } from 'lucide-react';
+import { FolderKanban, Bot, Plus, ArrowLeft, Play, Square, RefreshCw, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -124,11 +124,25 @@ export default function ProjectDetailPage() {
   const handleStopAgent = async (agentId: string) => {
     try {
       await fetch(`/api/worlds/${worldId}/environments/${envId}/projects/${projectId}/agents/${agentId}`, {
-        method: 'DELETE',
+        method: 'PATCH',
       });
       fetchProject();
     } catch (error) {
       console.error('Failed to stop agent:', error);
+    }
+  };
+
+  const handleDeleteAgent = async (agentId: string) => {
+    if (!confirm(`"${agentId}" agent'ı silmek istediğine emin misin? Bu işlem geri alınamaz.`)) {
+      return;
+    }
+    try {
+      await fetch(`/api/worlds/${worldId}/environments/${envId}/projects/${projectId}/agents/${agentId}`, {
+        method: 'DELETE',
+      });
+      fetchProject();
+    } catch (error) {
+      console.error('Failed to delete agent:', error);
     }
   };
 
@@ -323,6 +337,12 @@ export default function ProjectDetailPage() {
                           <Button variant="destructive" size="sm" onClick={(e) => { e.preventDefault(); handleStopAgent(agent.id); }}>
                             <Square className="w-3 h-3 mr-1" />
                             Stop
+                          </Button>
+                        )}
+                        {agent.status !== 'running' && (
+                          <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300 hover:bg-red-500/10" onClick={(e) => { e.preventDefault(); handleDeleteAgent(agent.id); }}>
+                            <Trash2 className="w-3 h-3 mr-1" />
+                            Delete
                           </Button>
                         )}
                       </div>

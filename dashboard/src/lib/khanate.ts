@@ -107,3 +107,15 @@ export const khanateAgentStop = (
   projectId,
   agentId
 });
+
+export const khanateAgentDelete = (
+  worldId: string, 
+  envId: string, 
+  projectId: string, 
+  agentId: string
+) => khanateHttp('/agent/delete', 'POST', {
+  worldId,
+  envId,
+  projectId,
+  agentId
+});
